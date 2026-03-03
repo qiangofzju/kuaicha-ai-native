@@ -1,0 +1,254 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 30 80% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 213 100% 65%;
+    --radius: 0.625rem;
+    --tier-lite: #7f95b8;
+    --tier-pro: #a7b6d0;
+    --tier-max: #d2ae67;
+    --surface-base: linear-gradient(160deg, rgba(255, 255, 255, 0.024), rgba(255, 255, 255, 0.009));
+    --surface-elevated: linear-gradient(160deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.012));
+    --surface-spotlight: linear-gradient(160deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.016));
+    --surface-border: rgba(255, 255, 255, 0.085);
+    --surface-border-strong: rgba(255, 255, 255, 0.12);
+    --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.24);
+    --shadow-mid: 0 16px 40px rgba(0, 0, 0, 0.3);
+    --shadow-hard: 0 22px 54px rgba(0, 0, 0, 0.36);
+    --text-main: rgba(255, 255, 255, 0.9);
+    --text-sub: rgba(255, 255, 255, 0.72);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-weak: rgba(255, 255, 255, 0.33);
+    --text-title: 2.125rem;
+    --text-subtitle: 1.375rem;
+    --text-body: 0.875rem;
+    --text-meta: 0.75rem;
+    --lh-tight: 1.2;
+    --lh-normal: 1.5;
+    --lh-relaxed: 1.75;
+  }
+
+  .dark {
+    --background: 222 47% 3%;
+    --foreground: 0 0% 95%;
+    --card: 222 40% 5%;
+    --card-foreground: 0 0% 95%;
+    --popover: 222 40% 5%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 30 80% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 30% 10%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 222 30% 12%;
+    --muted-foreground: 0 0% 50%;
+    --accent: 222 30% 12%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 100% / 0.06;
+    --input: 0 0% 100% / 0.08;
+    --ring: 213 100% 65%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-geist-sans), 'Noto Sans SC', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background:
+      radial-gradient(1200px 520px at 82% -16%, rgba(126, 145, 176, 0.12), transparent 60%),
+      radial-gradient(880px 420px at -12% 108%, rgba(92, 104, 127, 0.1), transparent 58%),
+      #06080f;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Utility classes */
+.card-hover {
+  @apply transition-all duration-300;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.input-glow:focus {
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+}
+
+.btn-glow:hover {
+  box-shadow: 0 0 20px var(--glow-color, rgba(74, 158, 255, 0.3));
+}
+
+.surface-premium {
+  background: var(--surface-elevated);
+  border: 1px solid var(--surface-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--shadow-mid);
+  backdrop-filter: blur(8px);
+}
+
+.surface-premium-soft {
+  background: var(--surface-base);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    var(--shadow-soft);
+  backdrop-filter: blur(6px);
+}
+
+.surface-base {
+  background: var(--surface-base);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.surface-elevated {
+  background: var(--surface-elevated);
+  border: 1px solid var(--surface-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    var(--shadow-mid);
+}
+
+.surface-spotlight {
+  background: var(--surface-spotlight);
+  border: 1px solid var(--surface-border-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    var(--shadow-hard);
+}
+
+.tier-lite {
+  color: var(--tier-lite);
+}
+
+.tier-pro {
+  color: var(--tier-pro);
+}
+
+.tier-max {
+  color: var(--tier-max);
+}
+
+.text-main {
+  color: var(--text-main);
+}
+
+.text-sub {
+  color: var(--text-sub);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-weak {
+  color: var(--text-weak);
+}
+
+.chat-markdown h1,
+.chat-markdown h2,
+.chat-markdown h3 {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  margin-top: 0.45rem;
+  margin-bottom: 0.35rem;
+}
+
+.chat-markdown h1 {
+  font-size: 1.02rem;
+}
+
+.chat-markdown h2 {
+  font-size: 0.98rem;
+}
+
+.chat-markdown h3 {
+  font-size: 0.92rem;
+}
+
+.chat-markdown p {
+  margin: 0.35rem 0;
+}
+
+.chat-markdown ul {
+  margin: 0.35rem 0;
+  padding-left: 1rem;
+}
+
+.chat-markdown li {
+  margin: 0.2rem 0;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.chat-markdown code {
+  font-size: 0.82em;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 1px 5px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.chat-markdown pre {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.24);
+  padding: 0.7rem 0.8rem;
+  margin: 0.5rem 0;
+}
+
+.chat-markdown pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.chat-markdown a {
+  color: #73b2ff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

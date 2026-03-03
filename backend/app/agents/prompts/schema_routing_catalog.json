@@ -1,0 +1,249 @@
+{
+  "strategy_version": "2026-03-01.layered-v2",
+  "max_tables_default": 7,
+  "max_columns_per_table": 24,
+  "scenario_boosts": {
+    "filter": {
+      "enterprise_profile": 1.0,
+      "operation_status": 0.9,
+      "ai_innovation": 1.4,
+      "judicial_risk": 1.2,
+      "operation_risk": 1.1,
+      "qualification_honor": 0.9
+    },
+    "export": {
+      "enterprise_profile": 1.3,
+      "operation_status": 0.8,
+      "ai_innovation": 1.0,
+      "judicial_risk": 0.8,
+      "operation_risk": 0.8,
+      "qualification_honor": 0.6
+    },
+    "derived": {
+      "enterprise_profile": 0.7,
+      "operation_status": 1.4,
+      "ai_innovation": 1.1,
+      "judicial_risk": 1.0,
+      "operation_risk": 1.1
+    }
+  },
+  "categories": [
+    {
+      "id": "enterprise_profile",
+      "name": "企业基本信息",
+      "description": "工商登记、企业主体、基础画像与股东结构",
+      "keywords": [
+        "企业",
+        "公司",
+        "工商",
+        "注册",
+        "法人",
+        "信用代码",
+        "上市",
+        "行业",
+        "地域",
+        "省份",
+        "城市",
+        "股东",
+        "控股"
+      ],
+      "table_hints": [
+        {
+          "table": "companies",
+          "description": "企业主档与主体属性",
+          "priority": 1.0,
+          "keywords": [
+            "企业名称",
+            "简称",
+            "注册资本",
+            "法人",
+            "信用代码",
+            "上市状态",
+            "行业",
+            "区域",
+            "城市"
+          ]
+        },
+        {
+          "table": "company_shareholders",
+          "description": "股东结构与持股比例（按年）",
+          "priority": 0.9,
+          "keywords": [
+            "股东",
+            "第一大股东",
+            "持股比例",
+            "控股股东",
+            "report_year"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "operation_status",
+      "name": "经营状况",
+      "description": "经营规模、财务指标、成长性表现",
+      "keywords": [
+        "营收",
+        "收入",
+        "利润",
+        "净利润",
+        "毛利率",
+        "净利率",
+        "ROE",
+        "资产负债率",
+        "增长",
+        "同比",
+        "复合增长",
+        "cagr"
+      ],
+      "table_hints": [
+        {
+          "table": "financials",
+          "description": "企业年度财务与增长指标",
+          "priority": 1.0,
+          "keywords": [
+            "年度",
+            "year",
+            "营收",
+            "净利润",
+            "总资产",
+            "毛利率",
+            "净利率",
+            "ROE",
+            "负债率"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai_innovation",
+      "name": "AI能力与科创方向",
+      "description": "人工智能方向、模型产品、应用场景与年份快照",
+      "keywords": [
+        "人工智能",
+        "AI",
+        "大模型",
+        "模型",
+        "智能体",
+        "算法",
+        "机器学习",
+        "应用场景",
+        "能力等级",
+        "今年"
+      ],
+      "table_hints": [
+        {
+          "table": "company_ai_profiles",
+          "description": "企业 AI 能力快照（按年）",
+          "priority": 1.2,
+          "keywords": [
+            "snapshot_year",
+            "ai_category",
+            "ai_capability_level",
+            "model_product",
+            "application_domain",
+            "is_key_ai_enterprise"
+          ]
+        },
+        {
+          "table": "company_tags",
+          "description": "高新/专精特新等资质标签",
+          "priority": 0.7,
+          "keywords": [
+            "高新",
+            "专精特新",
+            "资质",
+            "荣誉"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qualification_honor",
+      "name": "资质荣誉与标签",
+      "description": "企业标签、资质认证、荣誉称号、政策标签",
+      "keywords": [
+        "标签",
+        "资质",
+        "荣誉",
+        "高新",
+        "专精特新",
+        "政策",
+        "称号"
+      ],
+      "table_hints": [
+        {
+          "table": "company_tags",
+          "description": "企业标签与颁发年份信息",
+          "priority": 1.0,
+          "keywords": [
+            "tag",
+            "标签",
+            "荣誉",
+            "资质",
+            "issued_year",
+            "高新技术"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "judicial_risk",
+      "name": "司法风险",
+      "description": "诉讼、开庭公告、案号等司法信息",
+      "keywords": [
+        "司法",
+        "诉讼",
+        "法院公告",
+        "开庭公告",
+        "案号",
+        "裁判",
+        "被告",
+        "原告"
+      ],
+      "table_hints": [
+        {
+          "table": "court_announcements",
+          "description": "企业法院公告与案号信息",
+          "priority": 1.1,
+          "keywords": [
+            "announcement_date",
+            "court_name",
+            "case_no",
+            "case_reason",
+            "amount_involved"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "operation_risk",
+      "name": "经营风险",
+      "description": "行政处罚、税务异常、经营异常、合规风险",
+      "keywords": [
+        "经营风险",
+        "行政处罚",
+        "税务",
+        "异常经营",
+        "合规",
+        "环保处罚",
+        "安全生产"
+      ],
+      "table_hints": [
+        {
+          "table": "operation_risk_events",
+          "description": "经营风险事件明细",
+          "priority": 1.0,
+          "keywords": [
+            "risk_type",
+            "severity",
+            "authority",
+            "detail",
+            "event_date",
+            "status"
+          ]
+        }
+      ]
+    }
+  ]
+}
