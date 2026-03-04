@@ -78,9 +78,9 @@ export default function AgentListPage() {
           <div
             className="relative rounded-[14px] border overflow-hidden"
             style={{
-              background: "rgba(255,255,255,0.018)",
-              borderColor: "rgba(128,145,176,0.12)",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 12px rgba(0,0,0,0.12)",
+              background: "var(--filter-bar-bg)",
+              borderColor: "var(--filter-bar-border)",
+              boxShadow: "var(--filter-bar-shadow)",
             }}
           >
             {/* Scroll fade — left */}
@@ -134,11 +134,11 @@ export default function AgentListPage() {
                     style={{
                       background: isActive
                         ? `linear-gradient(135deg, ${moduleAccent}26, ${moduleAccent}0e)`
-                        : "rgba(255,255,255,0.018)",
+                        : "var(--filter-chip-bg)",
                       borderColor: isActive
                         ? `${moduleAccent}52`
                         : "rgba(128,145,176,0.10)",
-                      color: isActive ? moduleAccent : "rgba(255,255,255,0.45)",
+                      color: isActive ? moduleAccent : "var(--filter-chip-text)",
                       boxShadow: isActive
                         ? `0 0 18px ${moduleAccent}2c, inset 0 1px 0 rgba(255,255,255,0.10)`
                         : "none",
@@ -151,10 +151,10 @@ export default function AgentListPage() {
                       style={{
                         background: isActive
                           ? `${moduleAccent}22`
-                          : "rgba(128,145,176,0.10)",
+                          : "var(--filter-count-bg)",
                         color: isActive
                           ? `${moduleAccent}dd`
-                          : "rgba(255,255,255,0.30)",
+                          : "var(--filter-count-text)",
                       }}
                     >
                       {count}

@@ -122,7 +122,7 @@ export function BatchExecutionCanvas({
       ctx.fillRect(0, 0, w, h);
 
       ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--canvas-grid").trim() || "rgba(255,255,255,0.12)";
       ctx.beginPath();
       ctx.moveTo(left, y);
       ctx.lineTo(right, y);
@@ -145,12 +145,12 @@ export function BatchExecutionCanvas({
 
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = isDone ? accent : isActive ? `${accent}66` : "rgba(255,255,255,0.18)";
+        ctx.fillStyle = isDone ? accent : isActive ? `${accent}66` : (getComputedStyle(document.documentElement).getPropertyValue("--canvas-node-fill").trim() || "rgba(255,255,255,0.18)");
         ctx.fill();
 
         ctx.beginPath();
         ctx.arc(x, y, radius + 5, 0, Math.PI * 2);
-        ctx.strokeStyle = isActive ? `${accent}AA` : "rgba(255,255,255,0.12)";
+        ctx.strokeStyle = isActive ? `${accent}AA` : (getComputedStyle(document.documentElement).getPropertyValue("--canvas-node-stroke").trim() || "rgba(255,255,255,0.12)");
         ctx.lineWidth = 1.5;
         ctx.stroke();
       });
@@ -180,7 +180,7 @@ export function BatchExecutionCanvas({
 
   return (
     <div className="space-y-4 animate-fadeIn">
-      <div className="rounded-2xl border border-white/[0.1] bg-[linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_16px_42px_rgba(0,0,0,0.3)]">
+      <div className="rounded-2xl border p-5" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-sm font-medium text-white/75">执行轨迹</h3>
@@ -244,9 +244,9 @@ export function BatchExecutionCanvas({
                 key={stage.key}
                 className="rounded-lg border px-2.5 py-2 text-center text-[11px]"
                 style={{
-                  borderColor: active ? `${accent}5C` : "rgba(255,255,255,0.08)",
-                  background: done ? `${accent}14` : active ? `${accent}20` : "rgba(255,255,255,0.02)",
-                  color: done || active ? "#E5F9FC" : "rgba(255,255,255,0.45)",
+                  borderColor: active ? `${accent}5C` : "var(--select-option-border)",
+                  background: done ? `${accent}14` : active ? `${accent}20` : "var(--select-option-bg)",
+                  color: done || active ? accent : "var(--tab-inactive-text)",
                 }}
               >
                 {stage.label}
@@ -256,7 +256,7 @@ export function BatchExecutionCanvas({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/[0.1] bg-[linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] overflow-hidden">
+      <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
         <div className="px-4 py-3 border-b border-white/[0.06]">
           <h4 className="text-[12px] text-white/65">执行事件时间轴</h4>
         </div>

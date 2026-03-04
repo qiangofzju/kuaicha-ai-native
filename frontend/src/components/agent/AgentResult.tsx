@@ -148,7 +148,7 @@ export function AgentResult({ agent, result, onBack, onReset }: AgentResultProps
   return (
     <div className="space-y-4 animate-fadeIn">
       {/* Summary Card */}
-      <div className="p-6 rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_14px_42px_rgba(0,0,0,0.28)]">
+      <div className="p-6 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
         <div className="flex items-start justify-between mb-4">
           <h3 className="text-sm font-medium text-white/70">分析摘要</h3>
           {riskLevel && result.risk_rating && (
@@ -179,7 +179,7 @@ export function AgentResult({ agent, result, onBack, onReset }: AgentResultProps
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+      <div className="flex gap-1 p-1 rounded-xl" style={{ background: "var(--tab-bar-bg)", border: `1px solid var(--tab-bar-border)`, boxShadow: "var(--input-shadow)" }}>
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -193,7 +193,7 @@ export function AgentResult({ agent, result, onBack, onReset }: AgentResultProps
               color:
                 activeTab === tab.key
                   ? moduleAccent
-                  : "rgba(255,255,255,0.4)",
+                  : "var(--tab-inactive-text)",
             }}
           >
             {tab.label}
@@ -202,7 +202,7 @@ export function AgentResult({ agent, result, onBack, onReset }: AgentResultProps
       </div>
 
       {/* Tab content */}
-      <div className="p-6 rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_14px_42px_rgba(0,0,0,0.28)]">
+      <div className="p-6 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
         {/* Findings tab */}
         {activeTab === "findings" && (
           <div className="space-y-3">

@@ -165,7 +165,7 @@ function DataTable({
               <tr
                 key={idx}
                 className="hover:bg-white/[0.03] transition-colors"
-                style={{ background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.012)" }}
+                style={{ background: idx % 2 === 0 ? "transparent" : "var(--table-row-alt)" }}
               >
                 <td className="px-2 py-2 text-white/20 text-[10px] border-b border-white/[0.04]">
                   {idx + 1}
@@ -187,7 +187,7 @@ function DataTable({
                       <td
                         key={col.key}
                         className="px-3 py-2 border-b border-white/[0.04] text-right tabular-nums"
-                        style={{ color: isEmpty ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.8)" }}
+                        style={{ color: isEmpty ? "var(--text-weak)" : "var(--text-main)" }}
                       >
                         {isEmpty ? "—" : typeof rawVal === "number" ? rawVal.toLocaleString() : String(rawVal)}
                       </td>
@@ -198,7 +198,7 @@ function DataTable({
                     <td
                       key={col.key}
                       className="px-3 py-2 border-b border-white/[0.04] max-w-[220px]"
-                      style={{ color: isEmpty ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.75)" }}
+                      style={{ color: isEmpty ? "var(--text-weak)" : "var(--text-sub)" }}
                     >
                       <span className="block truncate" title={isEmpty ? undefined : String(rawVal)}>
                         {isEmpty ? "—" : String(rawVal)}
@@ -359,8 +359,7 @@ function SqlDetail({
         >
           {copied ? "已复制" : "复制"}
         </button>
-        <pre className="bg-black/40 border border-white/[0.08] rounded-xl p-4 pr-16 text-[11px] font-mono overflow-x-auto leading-relaxed whitespace-pre-wrap"
-          style={{ color: "#67e8f9" }}>
+        <pre className="rounded-xl p-4 pr-16 text-[11px] font-mono overflow-x-auto leading-relaxed whitespace-pre-wrap" style={{ background: "var(--code-block-bg)", border: "1px solid var(--card-border)", color: "#67e8f9" }}>
           {sql}
         </pre>
       </div>
@@ -492,7 +491,7 @@ export function BatchResult({ agent, result, onBack, onReset }: BatchResultProps
       <div
         className="p-5 rounded-2xl border"
         style={{
-          background: `linear-gradient(135deg, ${agentColor}10, rgba(255,255,255,0.015))`,
+          background: `linear-gradient(135deg, ${agentColor}10, var(--upload-area-bg))`,
           borderColor: `${agentColor}25`,
         }}
       >
@@ -531,7 +530,7 @@ export function BatchResult({ agent, result, onBack, onReset }: BatchResultProps
       {/* Tab bar */}
       <div
         className="flex rounded-xl p-1 gap-1"
-        style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ background: "var(--tab-bar-bg)", border: `1px solid var(--tab-bar-border)` }}
       >
         {tabs.map((tab) => (
           <button
@@ -545,7 +544,7 @@ export function BatchResult({ agent, result, onBack, onReset }: BatchResultProps
                     color: agentColor,
                     border: `1px solid ${agentColor}28`,
                   }
-                : { color: "rgba(255,255,255,0.45)", border: "1px solid transparent" }
+                : { color: "var(--tab-inactive-text)", border: "1px solid transparent" }
             }
           >
             {tab.label}
