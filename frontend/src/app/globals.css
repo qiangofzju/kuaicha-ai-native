@@ -29,18 +29,18 @@
     --tier-lite: #7f95b8;
     --tier-pro: #a7b6d0;
     --tier-max: #d2ae67;
-    --surface-base: linear-gradient(160deg, rgba(255, 255, 255, 0.024), rgba(255, 255, 255, 0.009));
-    --surface-elevated: linear-gradient(160deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.012));
-    --surface-spotlight: linear-gradient(160deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.016));
-    --surface-border: rgba(255, 255, 255, 0.085);
-    --surface-border-strong: rgba(255, 255, 255, 0.12);
-    --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.24);
-    --shadow-mid: 0 16px 40px rgba(0, 0, 0, 0.3);
-    --shadow-hard: 0 22px 54px rgba(0, 0, 0, 0.36);
-    --text-main: rgba(255, 255, 255, 0.9);
-    --text-sub: rgba(255, 255, 255, 0.72);
-    --text-muted: rgba(255, 255, 255, 0.5);
-    --text-weak: rgba(255, 255, 255, 0.33);
+    --surface-base: linear-gradient(160deg, rgba(255,255,255,0.80), rgba(248,250,254,0.55));
+    --surface-elevated: linear-gradient(160deg, rgba(255,255,255,0.88), rgba(248,250,254,0.65));
+    --surface-spotlight: linear-gradient(160deg, rgba(255,255,255,0.92), rgba(248,250,254,0.75));
+    --surface-border: rgba(12, 18, 42, 0.08);
+    --surface-border-strong: rgba(12, 18, 42, 0.12);
+    --shadow-soft: 0 10px 26px rgba(12, 18, 42, 0.06);
+    --shadow-mid: 0 16px 40px rgba(12, 18, 42, 0.08);
+    --shadow-hard: 0 22px 54px rgba(12, 18, 42, 0.10);
+    --text-main: rgba(12, 18, 42, 0.9);
+    --text-sub: rgba(12, 18, 42, 0.68);
+    --text-muted: rgba(12, 18, 42, 0.45);
+    --text-weak: rgba(12, 18, 42, 0.30);
     --text-title: 2.125rem;
     --text-subtitle: 1.375rem;
     --text-body: 0.875rem;
@@ -49,15 +49,90 @@
     --lh-normal: 1.5;
     --lh-relaxed: 1.75;
 
-    /* ── Theme-aware structural variables (light mode) ── */
+    /* ── Theme-aware structural variables (light mode defaults) ── */
     --bg-fade-color: rgba(236,241,250,0.92);
     --bg-root: #f0f4fb;
+    --bg-root-rgb: 240,244,251;
     --bg-sidebar: linear-gradient(180deg, #e8edf8 0%, #dde4f2 100%);
     --bg-sidebar-radial: radial-gradient(220px 180px at 80% -8%, rgba(74,120,210,0.10), transparent 72%), linear-gradient(180deg, #e8edf8 0%, #dde4f2 100%);
     --bg-main-gradient: radial-gradient(1200px 560px at 95% -14%, rgba(74,120,210,0.07), transparent 55%), radial-gradient(980px 520px at -24% 112%, rgba(86,99,150,0.05), transparent 62%), #f0f4fb;
     --bg-topbar: linear-gradient(180deg, rgba(240,244,251,0.97), rgba(235,240,250,0.90));
     --sidebar-inner-shadow: inset -1px 0 0 rgba(12,18,42,0.07), 1px 0 20px rgba(12,18,42,0.03);
     --scrollbar-thumb-color: rgba(12, 18, 42, 0.12);
+
+    /* ── Component-level theme tokens (light mode) ── */
+    --overlay-bg: rgba(12,18,42,0.28);
+    --panel-bg: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,254,0.98));
+    --panel-border: rgba(12,18,42,0.10);
+    --panel-shadow: 0 22px 56px rgba(12,18,42,0.14), 0 0 0 1px rgba(12,18,42,0.06);
+    --card-bg: linear-gradient(145deg, rgba(255,255,255,0.82), rgba(248,250,254,0.60));
+    --card-border: rgba(12,18,42,0.08);
+    --card-shadow: 0 2px 12px rgba(12,18,42,0.06);
+    --card-inset: inset 0 1px 0 rgba(255,255,255,0.92);
+    --card-hover-shadow: 0 12px 40px rgba(12,18,42,0.12);
+    --input-bg: rgba(255,255,255,0.75);
+    --input-border: rgba(12,18,42,0.10);
+    --input-shadow: inset 0 1px 2px rgba(12,18,42,0.04);
+    --divider-color: rgba(12,18,42,0.08);
+    --divider-strong: rgba(12,18,42,0.12);
+    --icon-muted: rgba(12,18,42,0.38);
+    --badge-bg: rgba(12,18,42,0.06);
+    --badge-text: rgba(12,18,42,0.50);
+    --badge-border: rgba(12,18,42,0.08);
+    --tag-bg: rgba(12,18,42,0.04);
+    --tag-text: rgba(12,18,42,0.55);
+    --tag-border: rgba(12,18,42,0.08);
+    --chat-fade-start: rgba(240,244,251,0.2);
+    --chat-fade-end: rgba(240,244,251,0.88);
+    --chat-banner-bg: linear-gradient(180deg, rgba(240,244,251,0.92), rgba(240,244,251,0.78));
+    --chat-banner-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 8px 20px rgba(12,18,42,0.06);
+    --chat-user-bubble-bg: linear-gradient(145deg, rgba(74,120,210,0.12), rgba(74,120,210,0.05));
+    --chat-user-bubble-border: rgba(74,120,210,0.18);
+    --chat-user-bubble-shadow: 0 10px 24px rgba(12,18,42,0.06);
+    --chat-ai-bubble-bg: linear-gradient(145deg, rgba(255,255,255,0.80), rgba(248,250,254,0.55));
+    --chat-ai-bubble-border: rgba(12,18,42,0.07);
+    --chat-ai-bubble-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 10px 24px rgba(12,18,42,0.06);
+    --tooltip-bg: rgba(255,255,255,0.96);
+    --tooltip-border: rgba(12,18,42,0.10);
+    --tooltip-text: rgba(12,18,42,0.82);
+    --tooltip-text-muted: rgba(12,18,42,0.50);
+    --chart-grid-color: rgba(12,18,42,0.06);
+    --chart-axis-color: rgba(12,18,42,0.35);
+    --chart-axis-line: rgba(12,18,42,0.10);
+    --chart-donut-border: #f0f4fb;
+    --canvas-grid: rgba(12,18,42,0.06);
+    --canvas-node-fill: rgba(12,18,42,0.04);
+    --canvas-node-stroke: rgba(12,18,42,0.10);
+    --progress-stage-pending-bg: rgba(12,18,42,0.03);
+    --progress-stage-pending-border: rgba(12,18,42,0.06);
+    --progress-stage-pending-text: rgba(12,18,42,0.35);
+    --progress-connector: rgba(12,18,42,0.08);
+    --code-block-bg: rgba(12,18,42,0.04);
+    --table-row-alt: rgba(12,18,42,0.025);
+    --tab-inactive-text: rgba(12,18,42,0.40);
+    --tab-bar-bg: rgba(12,18,42,0.03);
+    --tab-bar-border: rgba(12,18,42,0.07);
+    --select-option-bg: rgba(12,18,42,0.02);
+    --select-option-border: rgba(12,18,42,0.08);
+    --upload-area-bg: rgba(12,18,42,0.01);
+    --upload-area-border: rgba(12,18,42,0.10);
+    --mermaid-theme: default;
+    --mermaid-primary-border: rgba(12,18,42,0.12);
+    --mermaid-primary-text: rgba(12,18,42,0.78);
+    --mermaid-line-color: rgba(12,18,42,0.18);
+    --mermaid-main-bg: rgba(12,18,42,0.03);
+    --mermaid-node-border: rgba(12,18,42,0.10);
+    --top-glow-color: rgba(12,18,42,0.02);
+    --filter-bar-bg: rgba(255,255,255,0.65);
+    --filter-bar-border: rgba(12,18,42,0.08);
+    --filter-bar-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 12px rgba(12,18,42,0.05);
+    --filter-chip-bg: rgba(12,18,42,0.035);
+    --filter-chip-text: rgba(12,18,42,0.52);
+    --filter-chip-border: rgba(12,18,42,0.06);
+    --filter-count-bg: rgba(12,18,42,0.06);
+    --filter-count-text: rgba(12,18,42,0.40);
+    --summary-card-bg: rgba(255,255,255,0.65);
+    --stop-btn-bg: rgba(239,68,68,0.08);
   }
 
   .dark {
@@ -81,15 +156,104 @@
     --input: 0 0% 100% / 0.08;
     --ring: 213 100% 65%;
 
+    /* ── Override base design tokens for dark mode ── */
+    --surface-base: linear-gradient(160deg, rgba(255, 255, 255, 0.024), rgba(255, 255, 255, 0.009));
+    --surface-elevated: linear-gradient(160deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.012));
+    --surface-spotlight: linear-gradient(160deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.016));
+    --surface-border: rgba(255, 255, 255, 0.085);
+    --surface-border-strong: rgba(255, 255, 255, 0.12);
+    --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.24);
+    --shadow-mid: 0 16px 40px rgba(0, 0, 0, 0.3);
+    --shadow-hard: 0 22px 54px rgba(0, 0, 0, 0.36);
+    --text-main: rgba(255, 255, 255, 0.9);
+    --text-sub: rgba(255, 255, 255, 0.72);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-weak: rgba(255, 255, 255, 0.33);
+
     /* ── Theme-aware structural variables (dark mode) ── */
     --bg-fade-color: rgba(6,8,15,0.92);
     --bg-root: #06080f;
+    --bg-root-rgb: 6,8,15;
     --bg-sidebar: linear-gradient(180deg, #0a0f1d 0%, #080c16 100%);
     --bg-sidebar-radial: radial-gradient(220px 180px at 80% -8%, rgba(130,145,176,0.14), transparent 72%), linear-gradient(180deg, #0a0f1d 0%, #080c16 100%);
     --bg-main-gradient: radial-gradient(1200px 560px at 95% -14%, rgba(128,146,177,0.14), transparent 55%), radial-gradient(980px 520px at -24% 112%, rgba(86,99,122,0.1), transparent 62%), linear-gradient(145deg, #06080f 0%, #080d18 46%, #06080f 100%);
     --bg-topbar: linear-gradient(180deg, rgba(10,14,27,0.92), rgba(10,14,27,0.78));
     --sidebar-inner-shadow: inset -1px 0 0 rgba(255,255,255,0.03);
     --scrollbar-thumb-color: rgba(255, 255, 255, 0.10);
+
+    /* ── Component-level theme tokens (dark mode) ── */
+    --overlay-bg: rgba(6,8,15,0.78);
+    --panel-bg: linear-gradient(180deg, rgba(14,18,32,0.98), rgba(10,14,24,0.98));
+    --panel-border: rgba(255,255,255,0.10);
+    --panel-shadow: 0 22px 56px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+    --card-bg: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.012));
+    --card-border: rgba(255,255,255,0.07);
+    --card-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    --card-inset: inset 0 1px 0 rgba(255,255,255,0.07);
+    --card-hover-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    --input-bg: rgba(255,255,255,0.05);
+    --input-border: rgba(255,255,255,0.08);
+    --input-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    --divider-color: rgba(255,255,255,0.06);
+    --divider-strong: rgba(255,255,255,0.10);
+    --icon-muted: rgba(255,255,255,0.38);
+    --badge-bg: rgba(128,145,176,0.10);
+    --badge-text: rgba(255,255,255,0.30);
+    --badge-border: rgba(255,255,255,0.06);
+    --tag-bg: rgba(255,255,255,0.04);
+    --tag-text: rgba(255,255,255,0.40);
+    --tag-border: rgba(255,255,255,0.06);
+    --chat-fade-start: rgba(6,8,15,0.2);
+    --chat-fade-end: rgba(6,8,15,0.88);
+    --chat-banner-bg: linear-gradient(180deg, rgba(10,14,28,0.9), rgba(10,14,28,0.76));
+    --chat-banner-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 8px 20px rgba(0,0,0,0.24);
+    --chat-user-bubble-bg: linear-gradient(145deg, rgba(127,149,184,0.2), rgba(127,149,184,0.08));
+    --chat-user-bubble-border: rgba(127,149,184,0.28);
+    --chat-user-bubble-shadow: 0 10px 24px rgba(16,22,34,0.24);
+    --chat-ai-bubble-bg: linear-gradient(145deg, rgba(255,255,255,0.028), rgba(255,255,255,0.01));
+    --chat-ai-bubble-border: rgba(255,255,255,0.065);
+    --chat-ai-bubble-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 24px rgba(0,0,0,0.2);
+    --tooltip-bg: rgba(10,14,26,0.95);
+    --tooltip-border: rgba(255,255,255,0.08);
+    --tooltip-text: rgba(255,255,255,0.85);
+    --tooltip-text-muted: rgba(255,255,255,0.50);
+    --chart-grid-color: rgba(255,255,255,0.04);
+    --chart-axis-color: rgba(255,255,255,0.40);
+    --chart-axis-line: rgba(255,255,255,0.06);
+    --chart-donut-border: #06080f;
+    --canvas-grid: rgba(255,255,255,0.12);
+    --canvas-node-fill: rgba(255,255,255,0.18);
+    --canvas-node-stroke: rgba(255,255,255,0.12);
+    --progress-stage-pending-bg: rgba(255,255,255,0.03);
+    --progress-stage-pending-border: rgba(255,255,255,0.06);
+    --progress-stage-pending-text: rgba(255,255,255,0.30);
+    --progress-connector: rgba(255,255,255,0.08);
+    --code-block-bg: rgba(0,0,0,0.30);
+    --table-row-alt: rgba(255,255,255,0.012);
+    --tab-inactive-text: rgba(255,255,255,0.40);
+    --tab-bar-bg: rgba(255,255,255,0.025);
+    --tab-bar-border: rgba(255,255,255,0.06);
+    --select-option-bg: rgba(255,255,255,0.02);
+    --select-option-border: rgba(255,255,255,0.08);
+    --upload-area-bg: rgba(255,255,255,0.01);
+    --upload-area-border: rgba(255,255,255,0.10);
+    --mermaid-theme: dark;
+    --mermaid-primary-border: rgba(255,255,255,0.15);
+    --mermaid-primary-text: rgba(255,255,255,0.8);
+    --mermaid-line-color: rgba(255,255,255,0.2);
+    --mermaid-main-bg: rgba(255,255,255,0.04);
+    --mermaid-node-border: rgba(255,255,255,0.12);
+    --top-glow-color: rgba(255,255,255,0.06);
+    --filter-bar-bg: rgba(255,255,255,0.018);
+    --filter-bar-border: rgba(255,255,255,0.06);
+    --filter-bar-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 12px rgba(0,0,0,0.12);
+    --filter-chip-bg: rgba(255,255,255,0.018);
+    --filter-chip-text: rgba(255,255,255,0.45);
+    --filter-chip-border: rgba(255,255,255,0.05);
+    --filter-count-bg: rgba(128,145,176,0.10);
+    --filter-count-text: rgba(255,255,255,0.30);
+    --summary-card-bg: rgba(255,255,255,0.015);
+    --stop-btn-bg: rgba(239,68,68,0.08);
   }
 
   * {
@@ -149,41 +313,33 @@
 .surface-premium {
   background: var(--surface-elevated);
   border: 1px solid var(--surface-border);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    var(--shadow-mid);
+  box-shadow: var(--card-inset), var(--shadow-mid);
   backdrop-filter: blur(8px);
 }
 
 .surface-premium-soft {
   background: var(--surface-base);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    var(--shadow-soft);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-inset), var(--shadow-soft);
   backdrop-filter: blur(6px);
 }
 
 .surface-base {
   background: var(--surface-base);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-inset);
 }
 
 .surface-elevated {
   background: var(--surface-elevated);
   border: 1px solid var(--surface-border);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    var(--shadow-mid);
+  box-shadow: var(--card-inset), var(--shadow-mid);
 }
 
 .surface-spotlight {
   background: var(--surface-spotlight);
   border: 1px solid var(--surface-border-strong);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    var(--shadow-hard);
+  box-shadow: var(--card-inset), var(--shadow-hard);
 }
 
 .tier-lite {
