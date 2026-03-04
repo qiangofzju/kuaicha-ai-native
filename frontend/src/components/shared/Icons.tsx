@@ -42,6 +42,12 @@ export const Icons = {
       <circle cx="14" cy="9" r="1" fill="currentColor" />
     </svg>
   ),
+  Skills: ({ className, size = defaultSize }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6.5h14M5 6.5V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.5M4 6.5h12v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 15.5v-9Z" />
+      <path d="M10 9v5M7.5 11.5H10h2.5" />
+    </svg>
+  ),
   Send: ({ className, size = 18 }: IconProps) => (
     <svg className={className} width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 9h12M11 5l4 4-4 4" />

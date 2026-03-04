@@ -107,7 +107,6 @@ export function UserProfileModal({ open, onClose }: UserProfileModalProps) {
             iconColor={iconColor}
             labelColor={rowLabelColor}
             valueColor={rowValueColor}
-            dividerColor={dividerColor}
           />
           <ModalRow
             icon={<Icons.Key size={13} />}
@@ -117,7 +116,6 @@ export function UserProfileModal({ open, onClose }: UserProfileModalProps) {
             iconColor={iconColor}
             labelColor={rowLabelColor}
             valueColor={rowValueColor}
-            dividerColor={dividerColor}
           />
         </SectionWrapper>
 
@@ -295,7 +293,6 @@ function ModalRow({
   iconColor,
   labelColor,
   valueColor,
-  dividerColor: _dividerColor,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -304,7 +301,6 @@ function ModalRow({
   iconColor: string;
   labelColor: string;
   valueColor: string;
-  dividerColor: string;
 }) {
   return (
     <div className="flex items-center gap-2 py-1.5 px-3">

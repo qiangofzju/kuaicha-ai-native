@@ -17,17 +17,19 @@ interface PaletteItem {
   href: string;
   icon: React.FC<{ size?: number }>;
   color: string;
-  group: "agent" | "module" | "action";
+  group: "agent" | "skill" | "module" | "action";
 }
 
 const MODULE_ITEMS: PaletteItem[] = [
   { id: "mod-chat", label: "智能对话", description: "企业信息即时问答", href: "/workspace/chat", icon: Icons.Chat, color: theme.colors.modules.chat, group: "module" },
   { id: "mod-agent", label: "智能体工坊", description: "场景化 Agent 自动执行", href: "/workspace/agent", icon: Icons.Agent, color: theme.colors.modules.agent, group: "module" },
   { id: "mod-datashow", label: "数据洞察", description: "可视化分析工作台", href: "/workspace/datashow", icon: Icons.Datashow, color: theme.colors.modules.datashow, group: "module" },
+  { id: "mod-skills", label: "技能广场", description: "技能商店与执行工作台", href: "/workspace/skills", icon: Icons.Skills, color: theme.colors.modules.skills, group: "module" },
 ];
 
 const GROUP_LABELS: Record<string, string> = {
   agent: "智能体",
+  skill: "技能",
   action: "快速操作",
   module: "模块导航",
 };
@@ -57,13 +59,27 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       };
     }), []);
 
+  const skillItems: PaletteItem[] = useMemo(
+    () =>
+      theme.skills.map((s) => ({
+        id: `skill-${s.id}`,
+        label: s.name,
+        description: s.description,
+        href: `/workspace/skills/${s.id}`,
+        icon: getAgentIcon(s.icon),
+        color: s.color,
+        group: "skill" as const,
+      })),
+    [],
+  );
+
   // Build filtered results
   const results = useMemo(() => {
     const items: PaletteItem[] = [];
     const q = query.trim().toLowerCase();
 
     if (!q) {
-      items.push(...agentItems, ...MODULE_ITEMS);
+      items.push(...agentItems, ...skillItems, ...MODULE_ITEMS);
     } else {
       // Match agents
       for (const a of agentItems) {
@@ -75,6 +91,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       for (const m of MODULE_ITEMS) {
         if (m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q)) {
           items.push(m);
+        }
+      }
+      for (const s of skillItems) {
+        if (s.label.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)) {
+          items.push(s);
         }
       }
       // Quick actions based on query
@@ -96,15 +117,24 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         color: theme.colors.modules.datashow,
         group: "action",
       });
+      items.push({
+        id: "action-skill-batch",
+        label: `用批量数据处理技能执行「${query}」`,
+        description: "跳转到技能执行页",
+        href: "/workspace/skills/batch",
+        icon: Icons.Skills,
+        color: theme.colors.modules.skills,
+        group: "action",
+      });
     }
 
     return items;
-  }, [query, agentItems]);
+  }, [query, agentItems, skillItems]);
 
   // Group results for display
   const groupedResults = useMemo(() => {
     const groups: { key: string; label: string; items: PaletteItem[] }[] = [];
-    const order = ["agent", "action", "module"];
+    const order = ["skill", "agent", "action", "module"];
     for (const g of order) {
       const items = results.filter((r) => r.group === g);
       if (items.length > 0) {

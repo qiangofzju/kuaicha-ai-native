@@ -19,6 +19,7 @@ interface BatchResultProps {
   result: AgentResultData;
   onBack: () => void;
   onReset: () => void;
+  exportResultFn?: (taskId: string, format: "pdf" | "excel") => Promise<{ fallback?: string | null; filename: string }>;
 }
 
 type SortDir = "asc" | "desc" | null;
@@ -416,7 +417,7 @@ function SqlDetail({
 // Main BatchResult component
 // ---------------------------------------------------------------------------
 
-export function BatchResult({ agent, result, onBack, onReset }: BatchResultProps) {
+export function BatchResult({ agent, result, onBack, onReset, exportResultFn }: BatchResultProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("data");
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -438,7 +439,8 @@ export function BatchResult({ agent, result, onBack, onReset }: BatchResultProps
     setDownloadError(null);
     setDownloadHint(null);
     try {
-      const exportResp = await agentService.exportResult(result.task_id, "excel");
+      const exporter = exportResultFn || agentService.exportResult;
+      const exportResp = await exporter(result.task_id, "excel");
       if (exportResp?.fallback === "csv") {
         setDownloadHint("Excel 组件不可用，已自动降级下载 CSV");
       }

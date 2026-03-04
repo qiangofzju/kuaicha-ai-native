@@ -17,6 +17,9 @@ interface BatchExecutionCanvasProps {
   onStop?: () => void;
   resultReady?: boolean;
   onViewResult?: () => void;
+  accentColor?: string;
+  title?: string;
+  subtitle?: string;
 }
 
 function fmtTime(ts: string): string {
@@ -65,10 +68,13 @@ export function BatchExecutionCanvas({
   onStop,
   resultReady = false,
   onViewResult,
+  accentColor,
+  title = "执行轨迹",
+  subtitle = "流式展示当前步骤与关键事件（脱敏）",
 }: BatchExecutionCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
-  const accent = theme.colors.modules.agent;
+  const accent = accentColor || theme.colors.modules.agent;
   const activeStageIndex = getActiveStageIndex(progress, traceEvents);
   const pct = Math.max(0, Math.min(100, Math.round(progress?.progress ?? 0)));
   const latestStatus = traceEvents[traceEvents.length - 1]?.status ?? (resultReady ? "done" : "running");
@@ -183,8 +189,8 @@ export function BatchExecutionCanvas({
       <div className="rounded-2xl border p-5" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-medium text-white/75">执行轨迹</h3>
-            <p className="text-[12px] text-white/38 mt-0.5">流式展示当前步骤与关键事件（脱敏）</p>
+            <h3 className="text-sm font-medium text-white/75">{title}</h3>
+            <p className="text-[12px] text-white/38 mt-0.5">{subtitle}</p>
           </div>
           <div className="flex items-center gap-2">
             <span

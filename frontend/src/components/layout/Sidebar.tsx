@@ -14,11 +14,13 @@ const TABS = [
   { id: "chat", href: "/workspace/chat", label: "Chat", labelCn: "智能对话", icon: Icons.Chat, accent: theme.colors.modules.chat },
   { id: "agent", href: "/workspace/agent", label: "Agent", labelCn: "智能体工坊", icon: Icons.Agent, accent: theme.colors.modules.agent },
   { id: "datashow", href: "/workspace/datashow", label: "Datashow", labelCn: "数据洞察", icon: Icons.Datashow, accent: theme.colors.modules.datashow },
+  { id: "skills", href: "/workspace/skills", label: "Skills", labelCn: "技能广场", icon: Icons.Skills, accent: theme.colors.modules.skills },
 ];
 
 const QUICK_LINKS = [
   { id: "new-chat", label: "新建会话", icon: Icons.Plus },
   { id: "agent-list", label: "Agent 列表", icon: Icons.Agent, href: "/workspace/agent" },
+  { id: "skills-list", label: "技能商店", icon: Icons.Skills, href: "/workspace/skills" },
   { id: "relation", label: "关系图谱", icon: Icons.Network, href: "/workspace/datashow?tab=relation" },
   { id: "trend", label: "趋势分析", icon: Icons.TrendUp, href: "/workspace/datashow?tab=trend" },
 ];
