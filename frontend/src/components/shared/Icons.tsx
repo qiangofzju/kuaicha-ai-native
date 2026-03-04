@@ -190,6 +190,68 @@ export const Icons = {
       <path d="M7 3v8M4 8l3 3 3-3" />
     </svg>
   ),
+  Sun: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+      <circle cx="8" cy="8" r="3" />
+      <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.42 1.42M11.54 11.54l1.41 1.41M3.05 12.95l1.42-1.42M11.54 4.46l1.41-1.41" />
+    </svg>
+  ),
+  Moon: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+      <path d="M13.5 10A6 6 0 0 1 6 3a6 6 0 1 0 7.5 7Z" />
+    </svg>
+  ),
+  LogOut: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 3H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3M10 11l4-3-4-3M6 8h8" />
+    </svg>
+  ),
+  Mail: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="3" width="14" height="10" rx="1.5" />
+      <path d="M1 5l7 5 7-5" />
+    </svg>
+  ),
+  Key: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6" cy="7.5" r="3.5" />
+      <path d="M8.5 10L14 14M11 12l1.5 1.5" />
+    </svg>
+  ),
+  CreditCard: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="3" width="14" height="10" rx="1.5" />
+      <path d="M1 7h14M4 11h3" />
+    </svg>
+  ),
+  Keyboard: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="4" width="14" height="8" rx="1.5" />
+      <path d="M4 7.5h1M7.5 7.5h1M11 7.5h1M4 10.5h8" />
+    </svg>
+  ),
+  ChevronUp: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 10l5-5 5 5" />
+    </svg>
+  ),
+  ChevronDown: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6l5 5 5-5" />
+    </svg>
+  ),
+  Globe: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+      <circle cx="8" cy="8" r="6.5" />
+      <path d="M8 1.5c-2 2-3 4-3 6.5s1 4.5 3 6.5M8 1.5c2 2 3 4 3 6.5s-1 4.5-3 6.5M1.5 8h13" />
+    </svg>
+  ),
+  HelpCircle: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+      <circle cx="8" cy="8" r="6.5" />
+      <path d="M5.8 6a2.2 2.2 0 0 1 4.4.7c0 1.5-2.2 2-2.2 3M8 12.5v.5" />
+    </svg>
+  ),
 };
 
 // Helper to get an agent icon component by name
