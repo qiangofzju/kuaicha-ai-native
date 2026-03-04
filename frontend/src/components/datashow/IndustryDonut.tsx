@@ -22,11 +22,11 @@ export function IndustryDonut({ data }: IndustryDonutProps) {
       },
       tooltip: {
         trigger: "item" as const,
-        backgroundColor: "rgba(10, 14, 26, 0.95)",
-        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "var(--tooltip-bg)",
+        borderColor: "var(--tooltip-border)",
         borderWidth: 1,
         textStyle: {
-          color: "rgba(255,255,255,0.85)",
+          color: "var(--tooltip-text)",
           fontSize: 12,
         },
         formatter: (params: { name: string; value: number; percent: number }) => {
@@ -41,7 +41,7 @@ export function IndustryDonut({ data }: IndustryDonutProps) {
         itemHeight: 10,
         itemGap: 14,
         textStyle: {
-          color: "rgba(255,255,255,0.5)",
+          color: "var(--chart-axis-color)",
           fontSize: 11,
         },
         formatter: (name: string) => {
@@ -56,7 +56,7 @@ export function IndustryDonut({ data }: IndustryDonutProps) {
           center: ["35%", "50%"],
           avoidLabelOverlap: false,
           itemStyle: {
-            borderColor: "#06080f",
+            borderColor: "var(--chart-donut-border)",
             borderWidth: 2,
             borderRadius: 4,
           },
@@ -70,13 +70,13 @@ export function IndustryDonut({ data }: IndustryDonutProps) {
               total: {
                 fontSize: 22,
                 fontWeight: 700 as const,
-                color: "rgba(255,255,255,0.9)",
+                color: "var(--text-main)",
                 lineHeight: 30,
                 fontFamily: "var(--font-geist-sans), 'Noto Sans SC', sans-serif",
               },
               label: {
                 fontSize: 11,
-                color: "rgba(255,255,255,0.35)",
+                color: "var(--text-weak)",
                 lineHeight: 18,
               },
             },
@@ -96,7 +96,7 @@ export function IndustryDonut({ data }: IndustryDonutProps) {
   }, [data, total]);
 
   return (
-    <div className="p-5 rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_14px_42px_rgba(0,0,0,0.28)]">
+    <div className="p-5 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-medium text-white/70">行业分布</h3>

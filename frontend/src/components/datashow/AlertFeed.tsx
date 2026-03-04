@@ -16,7 +16,7 @@ const levelColors: Record<string, { dot: string; text: string }> = {
 
 export function AlertFeed({ alerts }: AlertFeedProps) {
   return (
-    <div className="p-5 rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_14px_42px_rgba(0,0,0,0.28)] flex flex-col h-full">
+    <div className="p-5 rounded-2xl border flex flex-col h-full" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4 shrink-0">
         <h3 className="text-sm font-medium text-white/70">实时预警</h3>

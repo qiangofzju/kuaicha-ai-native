@@ -54,11 +54,11 @@ export function GraphRenderer({ data, onNodeClick, height = 480 }: GraphRenderer
       label: {
         show: true,
         fontSize: n.symbol_size > 40 ? 13 : n.symbol_size > 30 ? 11 : 10,
-        color: "rgba(255,255,255,0.8)",
+        color: "var(--text-main)",
       },
       itemStyle: {
         color: CATEGORY_COLORS[n.category] || COLOR_POOL[data.categories.indexOf(n.category) % COLOR_POOL.length],
-        borderColor: "rgba(255,255,255,0.1)",
+        borderColor: "var(--chart-axis-line)",
         borderWidth: 1,
       },
     }));
@@ -70,10 +70,10 @@ export function GraphRenderer({ data, onNodeClick, height = 480 }: GraphRenderer
         show: true,
         formatter: e.label,
         fontSize: 9,
-        color: "rgba(255,255,255,0.35)",
+        color: "var(--text-weak)",
       },
       lineStyle: {
-        color: "rgba(255,255,255,0.12)",
+        color: "var(--canvas-node-stroke)",
         width: 1.5,
         curveness: 0.1,
       },
@@ -82,10 +82,10 @@ export function GraphRenderer({ data, onNodeClick, height = 480 }: GraphRenderer
     return {
       backgroundColor: "transparent",
       tooltip: {
-        backgroundColor: "rgba(10, 14, 26, 0.95)",
-        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "var(--tooltip-bg)",
+        borderColor: "var(--tooltip-border)",
         borderWidth: 1,
-        textStyle: { color: "rgba(255,255,255,0.85)", fontSize: 12 },
+        textStyle: { color: "var(--tooltip-text)", fontSize: 12 },
         formatter: (params: { dataType: string; data: { name: string; category: number } }) => {
           if (params.dataType === "node") {
             const cat = data.categories[params.data.category] || "";
@@ -96,7 +96,7 @@ export function GraphRenderer({ data, onNodeClick, height = 480 }: GraphRenderer
       },
       legend: {
         data: data.categories,
-        textStyle: { color: "rgba(255,255,255,0.5)", fontSize: 11 },
+        textStyle: { color: "var(--chart-axis-color)", fontSize: 11 },
         bottom: 0,
         itemWidth: 10,
         itemHeight: 10,
