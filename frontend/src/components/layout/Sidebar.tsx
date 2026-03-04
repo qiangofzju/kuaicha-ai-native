@@ -134,16 +134,16 @@ export function Sidebar() {
                 "relative flex items-center gap-2.5 rounded-[10px] cursor-pointer transition-all duration-200",
                 sidebarCollapsed ? "py-2.5 justify-center" : "py-2.5 px-3",
                 isActive
-                  ? "border border-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                  ? "border border-transparent"
                   : "border border-transparent hover:bg-white/[0.045] hover:border-white/[0.05]"
               )}
               title={tab.labelCn}
               style={
                 isActive
                   ? {
-                      background: `linear-gradient(135deg, ${tab.accent}1f, rgba(255,255,255,0.012))`,
+                      background: `linear-gradient(135deg, ${tab.accent}1f, var(--surface-card))`,
                       borderColor: `${tab.accent}36`,
-                      boxShadow: `0 10px 24px rgba(0,0,0,0.18)`,
+                      boxShadow: "var(--card-inset), 0 10px 24px rgba(0,0,0,0.18)",
                     }
                   : undefined
               }

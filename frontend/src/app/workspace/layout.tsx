@@ -21,7 +21,7 @@ export default function WorkspaceLayout({
             className="absolute inset-0 pointer-events-none opacity-[0.08]"
             style={{
               background:
-                "radial-gradient(900px 340px at 50% -20%, rgba(255,255,255,0.06), transparent 70%)",
+                "radial-gradient(900px 340px at 50% -20%, var(--top-glow-color), transparent 70%)",
             }}
           />
           <div className="relative h-full min-h-0">{children}</div>
