@@ -58,7 +58,7 @@ export function ChatWindow() {
                 <>
                   <div className="shrink-0 mb-4">
                     <div className="mx-auto max-w-[860px] px-3">
-                      <div className="h-10 rounded-xl border border-white/[0.1] bg-[linear-gradient(180deg,rgba(10,14,28,0.9),rgba(10,14,28,0.76))] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_8px_20px_rgba(0,0,0,0.24)] backdrop-blur-md flex items-center justify-between px-3">
+                      <div className="h-10 rounded-xl border border-white/[0.1] backdrop-blur-md flex items-center justify-between px-3" style={{ background: "var(--chat-banner-bg)", boxShadow: "var(--chat-banner-shadow)" }}>
                         <span className="text-[11px] text-white/38">
                           对话中 · {messages.length} 条消息
                         </span>
