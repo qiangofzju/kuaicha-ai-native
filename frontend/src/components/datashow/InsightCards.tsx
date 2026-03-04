@@ -44,8 +44,10 @@ export function InsightCards({ insights }: InsightCardsProps) {
           return (
             <div
               key={insight.title}
-              className={`p-4 rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] border ${accent.border} opacity-0 animate-fadeIn hover:-translate-y-[3px] hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)] transition-all duration-300`}
-              style={{ animationDelay: `${0.1 + i * 0.08}s` }}
+              className={`p-4 rounded-2xl border ${accent.border} opacity-0 animate-fadeIn hover:-translate-y-[3px] transition-all duration-300`}
+              style={{ background: "var(--card-bg)", boxShadow: "var(--card-inset), var(--shadow-mid)", animationDelay: `${0.1 + i * 0.08}s` }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "var(--card-hover-shadow)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "var(--card-inset), var(--shadow-mid)"; }}
             >
               <div className="flex items-start gap-3">
                 {/* Icon */}

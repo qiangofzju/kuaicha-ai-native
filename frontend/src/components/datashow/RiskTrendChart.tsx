@@ -19,16 +19,16 @@ export function RiskTrendChart({ data }: RiskTrendChartProps) {
     return {
       backgroundColor: "transparent",
       textStyle: {
-        color: "rgba(255,255,255,0.5)",
+        color: "var(--chart-axis-color)",
         fontFamily: "var(--font-geist-sans), 'Noto Sans SC', sans-serif",
       },
       tooltip: {
         trigger: "axis" as const,
-        backgroundColor: "rgba(10, 14, 26, 0.95)",
-        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "var(--tooltip-bg)",
+        borderColor: "var(--tooltip-border)",
         borderWidth: 1,
         textStyle: {
-          color: "rgba(255,255,255,0.85)",
+          color: "var(--tooltip-text)",
           fontSize: 12,
         },
         axisPointer: {
@@ -52,10 +52,10 @@ export function RiskTrendChart({ data }: RiskTrendChartProps) {
         type: "category" as const,
         data: months,
         axisLine: {
-          lineStyle: { color: "rgba(255,255,255,0.08)" },
+          lineStyle: { color: "var(--chart-axis-line)" },
         },
         axisLabel: {
-          color: "rgba(255,255,255,0.4)",
+          color: "var(--chart-axis-color)",
           fontSize: 11,
         },
         axisTick: { show: false },
@@ -65,11 +65,11 @@ export function RiskTrendChart({ data }: RiskTrendChartProps) {
         type: "value" as const,
         axisLine: { show: false },
         axisLabel: {
-          color: "rgba(255,255,255,0.4)",
+          color: "var(--chart-axis-color)",
           fontSize: 11,
         },
         splitLine: {
-          lineStyle: { color: "rgba(255,255,255,0.04)" },
+          lineStyle: { color: "var(--chart-grid-color)" },
         },
       },
       series: [
@@ -108,7 +108,7 @@ export function RiskTrendChart({ data }: RiskTrendChartProps) {
   }, [data]);
 
   return (
-    <div className="p-6 rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_14px_42px_rgba(0,0,0,0.28)]">
+    <div className="p-6 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>

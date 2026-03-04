@@ -65,9 +65,9 @@ export function AgentCard({ agent, index }: AgentCardProps) {
             key={tag}
             className="text-[10.5px] px-2 py-0.5 rounded border"
             style={{
-              color: "rgba(255,255,255,0.4)",
-              background: "rgba(255,255,255,0.04)",
-              borderColor: "rgba(255,255,255,0.06)",
+              color: "var(--tag-text)",
+              background: "var(--tag-bg)",
+              borderColor: "var(--tag-border)",
             }}
           >
             {tag}

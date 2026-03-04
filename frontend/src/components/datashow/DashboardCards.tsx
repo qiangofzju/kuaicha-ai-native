@@ -14,8 +14,10 @@ export function DashboardCards({ cards }: DashboardCardsProps) {
       {cards.map((card, i) => (
         <div
           key={card.label}
-          className="relative overflow-hidden p-[18px] rounded-[14px] bg-[linear-gradient(145deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] border border-white/[0.1] opacity-0 animate-fadeIn hover:-translate-y-[3px] hover:shadow-[0_14px_42px_rgba(0,0,0,0.38)] transition-all duration-300"
-          style={{ animationDelay: `${i * 0.06}s` }}
+          className="relative overflow-hidden p-[18px] rounded-[14px] border opacity-0 animate-fadeIn hover:-translate-y-[3px] transition-all duration-300"
+          style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--card-shadow)", animationDelay: `${i * 0.06}s` }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "var(--card-hover-shadow)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "var(--card-inset), var(--card-shadow)"; }}
         >
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-30" />
 
@@ -33,7 +35,7 @@ export function DashboardCards({ cards }: DashboardCardsProps) {
 
           <div
             className="text-[30px] leading-none font-semibold mb-3 tracking-tight"
-            style={{ color: "rgba(255,255,255,0.9)" }}
+            style={{ color: "var(--text-main)" }}
           >
             {card.value}
           </div>

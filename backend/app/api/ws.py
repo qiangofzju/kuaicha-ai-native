@@ -1,4 +1,6 @@
-"""WebSocket endpoint for real-time agent progress updates."""
+"""WebSocket endpoints for real-time execution progress updates."""
+
+from __future__ import annotations
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -8,18 +10,12 @@ from app.utils.logger import logger
 ws_router = APIRouter(tags=["websocket"])
 
 
-def _wrap_progress(data: dict) -> dict:
-    """Wrap a flat status dict into the message format the frontend expects.
-
-    Converts backend progress (0.0–1.0) to frontend percentage (0–100)
-    and derives a stageIndex for the 4-stage progress indicator.
-    """
+def _wrap_progress(data: dict, msg_prefix: str) -> dict:
+    """Wrap task status dict into frontend message format."""
     raw_progress = data.get("progress", 0)
-    # Backend uses 0.0–1.0 internally; frontend expects 0–100
     pct = round(raw_progress * 100) if raw_progress <= 1.0 else round(raw_progress)
-
     return {
-        "type": "agent_progress",
+        "type": f"{msg_prefix}_progress",
         "data": {
             "progress": pct,
             "stage": data.get("stage", ""),
@@ -30,23 +26,18 @@ def _wrap_progress(data: dict) -> dict:
     }
 
 
-@ws_router.websocket("/ws/agent/{task_id}")
-async def agent_progress_ws(websocket: WebSocket, task_id: str):
-    """WebSocket endpoint that pushes agent progress updates to the client.
-
-    Message protocol (sent to client):
-      - ``{"type": "agent_progress", "data": {progress, stage, message}}``
-      - ``{"type": "agent_stream",   "data": {content}}``  (streaming text)
-      - ``{"type": "agent_trace",    "data": {...}}``      (structured trace event)
-      - ``{"type": "agent_complete", "data": {task_id}}``
-      - ``{"type": "agent_error",    "data": {message}}``
-    """
+async def _task_progress_ws(websocket: WebSocket, task_id: str, msg_prefix: str):
+    """Generic websocket worker for agent/skill task streaming."""
     await websocket.accept()
-    logger.info("WebSocket connected: task_id=%s", task_id)
+    logger.info("WebSocket connected (%s): task_id=%s", msg_prefix, task_id)
     is_disconnected = False
+    progress_type = f"{msg_prefix}_progress"
+    stream_type = f"{msg_prefix}_stream"
+    trace_type = f"{msg_prefix}_trace"
+    complete_type = f"{msg_prefix}_complete"
+    error_type = f"{msg_prefix}_error"
 
     async def safe_send_json(payload: dict) -> bool:
-        """Send JSON payload safely; return False when client disconnected."""
         nonlocal is_disconnected
         if is_disconnected:
             return False
@@ -67,7 +58,6 @@ async def agent_progress_ws(websocket: WebSocket, task_id: str):
             return False
 
     async def safe_close() -> None:
-        """Close socket safely; ignore disconnect races."""
         nonlocal is_disconnected
         if is_disconnected:
             return
@@ -78,14 +68,12 @@ async def agent_progress_ws(websocket: WebSocket, task_id: str):
         finally:
             is_disconnected = True
 
-    # Check if task exists
     task = executor.get_task(task_id)
     if task is None:
-        await safe_send_json({"type": "agent_error", "data": {"message": "Task not found"}})
+        await safe_send_json({"type": error_type, "data": {"message": "Task not found"}})
         await safe_close()
         return
 
-    # Register a callback that pushes updates to this WebSocket
     async def on_update(data: dict):
         if is_disconnected:
             return
@@ -94,64 +82,58 @@ async def agent_progress_ws(websocket: WebSocket, task_id: str):
         status = data.get("status", "")
 
         if status == "completed":
-            if await safe_send_json({"type": "agent_complete", "data": {"task_id": task_id}}):
+            if await safe_send_json({"type": complete_type, "data": {"task_id": task_id}}):
                 await safe_close()
-        elif status == "failed":
-            if await safe_send_json({"type": "agent_error", "data": {"message": data.get("message", "Task failed")}}):
+            return
+        if status == "failed":
+            if await safe_send_json(
+                {"type": error_type, "data": {"message": data.get("message", "Task failed")}}
+            ):
                 await safe_close()
-        elif extra and extra.get("type") == "stream":
-            # Streaming text chunk – send as separate message type
-            await safe_send_json({
-                "type": "agent_stream",
-                "data": {"content": extra.get("content", "")},
-            })
-        elif extra and extra.get("type") == "trace":
+            return
+
+        if extra and extra.get("type") == "stream":
+            await safe_send_json({"type": stream_type, "data": {"content": extra.get("content", "")}})
+            return
+
+        if extra and extra.get("type") == "trace":
             event = extra.get("event", {})
             if isinstance(event, dict):
-                await safe_send_json({
-                    "type": "agent_trace",
-                    "data": event,
-                })
-        else:
-            await safe_send_json(_wrap_progress(data))
+                await safe_send_json({"type": trace_type, "data": event})
+            return
+
+        await safe_send_json(_wrap_progress(data, msg_prefix=msg_prefix))
 
     executor.subscribe(task_id, on_update)
 
     try:
-        # Initial sync for the current snapshot and historical trace events.
-        # This avoids missing early trace chunks if the task started before
-        # the WebSocket subscription was established.
         current_task = executor.get_task(task_id)
         if current_task is None:
-            await safe_send_json({"type": "agent_error", "data": {"message": "Task not found"}})
+            await safe_send_json({"type": error_type, "data": {"message": "Task not found"}})
             await safe_close()
             return
 
         status_dict = current_task.to_status_dict()
-        if not await safe_send_json(_wrap_progress(status_dict)):
+        if not await safe_send_json(_wrap_progress(status_dict, msg_prefix=msg_prefix)):
             return
 
         for event in executor.get_trace_events(task_id):
             if not isinstance(event, dict):
                 continue
-            if not await safe_send_json({"type": "agent_trace", "data": event}):
+            if not await safe_send_json({"type": trace_type, "data": event}):
                 return
 
         if current_task.status.value == "completed":
-            if await safe_send_json({"type": "agent_complete", "data": {"task_id": task_id}}):
+            if await safe_send_json({"type": complete_type, "data": {"task_id": task_id}}):
                 await safe_close()
             return
         if current_task.status.value == "failed":
             if await safe_send_json(
-                {
-                    "type": "agent_error",
-                    "data": {"message": status_dict.get("message", "Task failed")},
-                }
+                {"type": error_type, "data": {"message": status_dict.get("message", "Task failed")}}
             ):
                 await safe_close()
             return
 
-        # Keep the connection alive – listen for client messages (e.g. ping)
         while True:
             data = await websocket.receive_text()
             if data == "ping":
@@ -165,3 +147,13 @@ async def agent_progress_ws(websocket: WebSocket, task_id: str):
         logger.info("WebSocket disconnected: task_id=%s", task_id)
     finally:
         executor.unsubscribe(task_id, on_update)
+
+
+@ws_router.websocket("/ws/agent/{task_id}")
+async def agent_progress_ws(websocket: WebSocket, task_id: str):
+    await _task_progress_ws(websocket=websocket, task_id=task_id, msg_prefix="agent")
+
+
+@ws_router.websocket("/ws/skills/{task_id}")
+async def skill_progress_ws(websocket: WebSocket, task_id: str):
+    await _task_progress_ws(websocket=websocket, task_id=task_id, msg_prefix="skill")

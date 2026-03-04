@@ -89,10 +89,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     return (
       <div className="flex justify-end mb-4 animate-fadeIn">
         <div
-          className="max-w-[75%] px-[18px] py-3 rounded-2xl rounded-br-[6px] border shadow-[0_10px_24px_rgba(16,22,34,0.24)]"
+          className="max-w-[75%] px-[18px] py-3 rounded-2xl rounded-br-[6px] border"
           style={{
-            background: "linear-gradient(145deg, rgba(127,149,184,0.2), rgba(127,149,184,0.08))",
-            borderColor: "rgba(127,149,184,0.28)",
+            background: "var(--chat-user-bubble-bg)",
+            borderColor: "var(--chat-user-bubble-border)",
+            boxShadow: "var(--chat-user-bubble-shadow)",
           }}
         >
           <p className="text-[14px] text-white/90 leading-relaxed whitespace-pre-wrap break-words">
@@ -119,7 +120,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(255,255,255,0.028),rgba(255,255,255,0.01))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_24px_rgba(0,0,0,0.2)] px-4 py-3">
+        <div className="rounded-2xl border px-4 py-3" style={{ background: "var(--chat-ai-bubble-bg)", borderColor: "var(--card-border)", boxShadow: "var(--chat-ai-bubble-shadow)" }}>
           <div className="flex items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-2">
               <div className="text-[11px] text-white/45 font-medium">快查 AI</div>

@@ -19,20 +19,24 @@ export function MermaidRenderer({ code }: MermaidRendererProps) {
         // Dynamic import to avoid SSR issues
         const mermaid = (await import("mermaid")).default;
 
+        const cs = getComputedStyle(document.documentElement);
+        const getVar = (name: string) => cs.getPropertyValue(name).trim();
+        const isDark = document.documentElement.classList.contains("dark");
+
         mermaid.initialize({
           startOnLoad: false,
-          theme: "dark",
-          darkMode: true,
+          theme: isDark ? "dark" : "default",
+          darkMode: isDark,
           themeVariables: {
             primaryColor: "rgba(6,182,212,0.15)",
-            primaryBorderColor: "rgba(255,255,255,0.15)",
-            primaryTextColor: "rgba(255,255,255,0.8)",
-            lineColor: "rgba(255,255,255,0.2)",
+            primaryBorderColor: getVar("--mermaid-primary-border"),
+            primaryTextColor: getVar("--mermaid-primary-text"),
+            lineColor: getVar("--mermaid-line-color"),
             secondaryColor: "rgba(167,139,250,0.1)",
             tertiaryColor: "rgba(210,174,103,0.12)",
             background: "transparent",
-            mainBkg: "rgba(255,255,255,0.04)",
-            nodeBorder: "rgba(255,255,255,0.12)",
+            mainBkg: getVar("--mermaid-main-bg"),
+            nodeBorder: getVar("--mermaid-node-border"),
             fontFamily: "var(--font-geist-sans), 'Noto Sans SC', sans-serif",
             fontSize: "13px",
           },
