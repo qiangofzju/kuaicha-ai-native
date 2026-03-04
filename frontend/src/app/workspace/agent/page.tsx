@@ -73,29 +73,97 @@ export default function AgentListPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 mb-5 overflow-x-auto">
-          <div className="flex items-center gap-1.5 px-3.5 py-[7px] rounded-[10px] bg-white/[0.03] border border-white/[0.08] shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-            <Icons.Filter size={14} />
-            <span className="text-[12.5px] text-white/40">筛选</span>
-          </div>
-          {filterTags.map((tag) => {
-            const isActive = tag === activeFilter;
-            return (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => setActiveFilter(tag)}
-                className="px-3.5 py-1.5 rounded-lg text-[12px] border transition-colors shrink-0"
+        {/* ── Premium Filter Bar ── */}
+        <div className="relative mb-5">
+          <div
+            className="relative rounded-[14px] border overflow-hidden"
+            style={{
+              background: "rgba(255,255,255,0.018)",
+              borderColor: "rgba(128,145,176,0.12)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 12px rgba(0,0,0,0.12)",
+            }}
+          >
+            {/* Scroll fade — left */}
+            <div
+              className="absolute left-0 top-0 bottom-0 w-14 z-10 pointer-events-none"
+              style={{ background: "linear-gradient(to right, var(--bg-fade-color) 0%, transparent 100%)" }}
+            />
+            {/* Scroll fade — right */}
+            <div
+              className="absolute right-0 top-0 bottom-0 w-14 z-10 pointer-events-none"
+              style={{ background: "linear-gradient(to left, var(--bg-fade-color) 0%, transparent 100%)" }}
+            />
+
+            <div
+              className="no-scrollbar flex items-center gap-1.5 overflow-x-auto"
+              style={{ padding: "10px 18px" }}
+            >
+              {/* Filter label button */}
+              <div
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[9px] border mr-1"
                 style={{
-                  background: isActive ? `${moduleAccent}20` : "rgba(255,255,255,0.02)",
-                  borderColor: isActive ? `${moduleAccent}4a` : "rgba(255,255,255,0.08)",
-                  color: isActive ? moduleAccent : "rgba(255,255,255,0.4)",
+                  background: `${moduleAccent}12`,
+                  borderColor: `${moduleAccent}30`,
+                  color: moduleAccent,
+                  boxShadow: `0 0 10px ${moduleAccent}18`,
                 }}
               >
-                {tag}
-              </button>
-            );
-          })}
+                <Icons.Filter size={12} />
+                <span className="text-[11.5px] font-semibold tracking-wide">筛选</span>
+              </div>
+
+              {/* Divider */}
+              <div
+                className="w-px h-4 shrink-0 mx-0.5"
+                style={{ background: "rgba(128,145,176,0.15)" }}
+              />
+
+              {/* Tag chips */}
+              {filterTags.map((tag) => {
+                const isActive = tag === activeFilter;
+                const count =
+                  tag === "全部"
+                    ? displayAgents.length
+                    : displayAgents.filter((a) => a.tags.includes(tag)).length;
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setActiveFilter(tag)}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[9px] border text-[11.5px] font-medium transition-all duration-200"
+                    style={{
+                      background: isActive
+                        ? `linear-gradient(135deg, ${moduleAccent}26, ${moduleAccent}0e)`
+                        : "rgba(255,255,255,0.018)",
+                      borderColor: isActive
+                        ? `${moduleAccent}52`
+                        : "rgba(128,145,176,0.10)",
+                      color: isActive ? moduleAccent : "rgba(255,255,255,0.45)",
+                      boxShadow: isActive
+                        ? `0 0 18px ${moduleAccent}2c, inset 0 1px 0 rgba(255,255,255,0.10)`
+                        : "none",
+                      transform: isActive ? "translateY(-0.5px)" : "none",
+                    }}
+                  >
+                    {tag}
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-[5px] font-normal min-w-[18px] text-center tabular-nums"
+                      style={{
+                        background: isActive
+                          ? `${moduleAccent}22`
+                          : "rgba(128,145,176,0.10)",
+                        color: isActive
+                          ? `${moduleAccent}dd`
+                          : "rgba(255,255,255,0.30)",
+                      }}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Agent grid */}

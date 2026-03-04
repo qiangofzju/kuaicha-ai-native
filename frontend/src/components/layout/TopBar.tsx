@@ -33,7 +33,10 @@ export function TopBar() {
 
   return (
     <>
-      <div className="h-[58px] flex items-center justify-between px-7 border-b border-white/[0.06] shrink-0 backdrop-blur-sm bg-[linear-gradient(180deg,rgba(10,14,27,0.92),rgba(10,14,27,0.78))]">
+      <div
+        className="h-[58px] flex items-center justify-between px-7 border-b shrink-0 backdrop-blur-sm"
+        style={{ background: "var(--bg-topbar)", borderBottomColor: "rgba(128,145,176,0.12)" }}
+      >
         <div className="flex items-center gap-3.5">
           <div className="flex items-center gap-2.5 text-[15px] font-semibold text-white/95">
             <span
