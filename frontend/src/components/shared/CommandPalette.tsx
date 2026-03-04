@@ -157,19 +157,20 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
-      style={{ background: "rgba(6,8,15,0.78)", backdropFilter: "blur(6px)" }}
+      style={{ background: "var(--overlay-bg)", backdropFilter: "blur(6px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-full max-w-[540px] rounded-2xl border overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
+        className="w-full max-w-[540px] rounded-2xl border overflow-hidden"
         style={{
-          background: "linear-gradient(180deg, rgba(14,18,32,0.98), rgba(10,14,24,0.98))",
-          borderColor: "rgba(255,255,255,0.1)",
+          background: "var(--panel-bg)",
+          borderColor: "var(--panel-border)",
+          boxShadow: "var(--panel-shadow)",
         }}
         onKeyDown={handleKeyDown}
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06]">
+        <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: `1px solid var(--divider-color)` }}>
           <Icons.Search size={18} />
           <input
             ref={inputRef}
@@ -179,8 +180,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             className="flex-1 bg-transparent border-none outline-none text-white/90 text-[14px] placeholder:text-white/25"
           />
           <span
-            className="text-[11px] text-white/25 px-2 py-0.5 rounded-[5px] border cursor-pointer hover:text-white/40 transition-colors"
-            style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" }}
+            className="text-[11px] text-white/25 px-2 py-0.5 rounded-[5px] cursor-pointer hover:text-white/40 transition-colors"
+            style={{ background: "var(--tag-bg)", border: `1px solid var(--tag-border)` }}
             onClick={onClose}
           >
             ESC
@@ -203,7 +204,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                     key={item.id}
                     className="flex items-center gap-3 px-5 py-2.5 cursor-pointer transition-colors"
                     style={{
-                      background: isSelected ? "rgba(255,255,255,0.05)" : "transparent",
+                      background: isSelected ? "var(--tag-bg)" : "transparent",
                     }}
                     onClick={() => handleSelect(item)}
                     onMouseEnter={() => setSelectedIndex(idx)}

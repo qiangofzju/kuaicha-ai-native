@@ -16,7 +16,7 @@ function renderSimpleMarkdown(markdown: string): string {
 
   html = html.replace(/```([\s\S]*?)```/g, (_match, code: string) => {
     const codeHtml = code.trim();
-    return `<pre class="bg-black/30 border border-white/[0.08] rounded-xl p-3 overflow-x-auto my-2"><code>${codeHtml}</code></pre>`;
+    return `<pre style="background:var(--code-block-bg);border:1px solid var(--card-border)" class="rounded-xl p-3 overflow-x-auto my-2"><code>${codeHtml}</code></pre>`;
   });
 
   html = html.replace(/`([^`]+)`/g, "<code class=\"px-1 py-0.5 rounded bg-white/[0.08] text-white/85\">$1</code>");
@@ -97,7 +97,7 @@ export function AgentProgress({ agent, progress, streamContent, onStop }: AgentP
 
   return (
     <div className="space-y-4 animate-fadeIn">
-      <div className="p-6 rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_14px_42px_rgba(0,0,0,0.28)]">
+      <div className="p-6 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-sm font-medium text-white/70">执行进度</h3>
@@ -165,7 +165,7 @@ export function AgentProgress({ agent, progress, streamContent, onStop }: AgentP
                     style={{
                       background: isCompleted
                         ? moduleAccent
-                        : "rgba(255,255,255,0.06)",
+                        : "var(--progress-connector)",
                     }}
                   />
                 )}
@@ -178,12 +178,12 @@ export function AgentProgress({ agent, progress, streamContent, onStop }: AgentP
                       ? moduleAccent
                       : isActive
                         ? `${moduleAccent}20`
-                        : "rgba(255,255,255,0.04)",
+                        : "var(--progress-stage-pending-bg)",
                     color: isCompleted
                       ? "#fff"
                       : isActive
                         ? moduleAccent
-                        : "rgba(255,255,255,0.3)",
+                        : "var(--progress-stage-pending-text)",
                     border: isActive
                       ? `2px solid ${moduleAccent}`
                       : "2px solid transparent",
@@ -208,8 +208,8 @@ export function AgentProgress({ agent, progress, streamContent, onStop }: AgentP
                     color: isActive
                       ? moduleAccent
                       : isCompleted
-                        ? "rgba(255,255,255,0.7)"
-                        : "rgba(255,255,255,0.3)",
+                        ? "var(--text-sub)"
+                        : "var(--progress-stage-pending-text)",
                   }}
                 >
                   {stage.label}
@@ -265,7 +265,7 @@ export function AgentProgress({ agent, progress, streamContent, onStop }: AgentP
 
       {/* Streaming analysis content */}
       {streamContent && (
-        <div className="rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] border border-white/[0.1] overflow-hidden animate-fadeIn shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_14px_42px_rgba(0,0,0,0.28)]">
+        <div className="rounded-2xl border overflow-hidden animate-fadeIn" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
           <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.04]">
             <div
               className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"

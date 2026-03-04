@@ -49,11 +49,11 @@ export function RelationshipGraph() {
       label: {
         show: true,
         fontSize: n.symbol_size > 40 ? 13 : 10,
-        color: "rgba(255,255,255,0.8)",
+        color: "var(--text-main)",
       },
       itemStyle: {
         color: CATEGORY_COLORS[n.category] || "#6B7280",
-        borderColor: "rgba(255,255,255,0.1)",
+        borderColor: "var(--chart-axis-line)",
         borderWidth: 1,
       },
     }));
@@ -65,10 +65,10 @@ export function RelationshipGraph() {
         show: true,
         formatter: e.label,
         fontSize: 9,
-        color: "rgba(255,255,255,0.35)",
+        color: "var(--text-weak)",
       },
       lineStyle: {
-        color: "rgba(255,255,255,0.12)",
+        color: "var(--canvas-node-stroke)",
         width: 1.5,
         curveness: 0.1,
       },
@@ -77,14 +77,14 @@ export function RelationshipGraph() {
     return {
       backgroundColor: "transparent",
       tooltip: {
-        backgroundColor: "rgba(10, 14, 26, 0.95)",
-        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "var(--tooltip-bg)",
+        borderColor: "var(--tooltip-border)",
         borderWidth: 1,
-        textStyle: { color: "rgba(255,255,255,0.85)", fontSize: 12 },
+        textStyle: { color: "var(--tooltip-text)", fontSize: 12 },
       },
       legend: {
         data: graphData.categories,
-        textStyle: { color: "rgba(255,255,255,0.5)", fontSize: 11 },
+        textStyle: { color: "var(--chart-axis-color)", fontSize: 11 },
         bottom: 0,
         itemWidth: 10,
         itemHeight: 10,
@@ -112,7 +112,7 @@ export function RelationshipGraph() {
   }, [graphData]);
 
   return (
-    <div className="p-5 rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_14px_42px_rgba(0,0,0,0.28)]">
+    <div className="p-5 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
       {/* Header + search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
         <h3 className="text-sm font-medium text-white/70">企业关系图谱</h3>

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAppStore } from "@/stores/appStore";
 import { useChatStore } from "@/stores/chatStore";
 import { Icons, getAgentIcon } from "@/components/shared/Icons";
+import { UserProfileModal } from "@/components/shared/UserProfileModal";
 import { cn } from "@/lib/utils";
 import { theme } from "@/styles/theme";
 
@@ -40,15 +41,16 @@ function formatSessionTime(timestamp: string) {
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { sidebarCollapsed, toggleSidebar } = useAppStore();
+  const { sidebarCollapsed, toggleSidebar, theme: appTheme, toggleTheme } = useAppStore();
   const { sessions, currentSessionId, loadSessions, setCurrentSession, createSession, renameSession, deleteSession } = useChatStore();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const activeTabId = TABS.find((t) => pathname.startsWith(t.href))?.id || "chat";
   const featuredAgents = useMemo(
-    () => theme.agents.filter((agent) => agent.status !== "coming").slice(0, 4),
+    () => theme.agents.filter((agent) => (agent.status as string) !== "coming").slice(0, 4),
     [],
   );
 
@@ -85,12 +87,12 @@ export function Sidebar() {
 
   return (
     <div
-      className="flex flex-col h-full border-r border-white/[0.08] shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+      className="relative flex flex-col h-full shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
       style={{
         width: sidebarCollapsed ? 72 : 256,
-        background:
-          "radial-gradient(220px 180px at 80% -8%, rgba(130,145,176,0.14), transparent 72%), linear-gradient(180deg, #0a0f1d 0%, #080c16 100%)",
-        boxShadow: "inset -1px 0 0 rgba(255,255,255,0.03)",
+        background: "var(--bg-sidebar-radial)",
+        boxShadow: "var(--sidebar-inner-shadow)",
+        borderRight: "1px solid rgba(128,145,176,0.10)",
       }}
     >
       <div
@@ -115,7 +117,7 @@ export function Sidebar() {
         )}
       </div>
 
-      <div className={cn("h-px bg-white/[0.08]", sidebarCollapsed ? "mx-3" : "mx-4")} />
+      <div className={cn("h-px", sidebarCollapsed ? "mx-3" : "mx-4")} style={{ background: "rgba(128,145,176,0.10)" }} />
 
       <div className={cn("flex flex-col gap-1.5", sidebarCollapsed ? "p-2" : "p-3.5")}>
         {!sidebarCollapsed && (
@@ -132,16 +134,16 @@ export function Sidebar() {
                 "relative flex items-center gap-2.5 rounded-[10px] cursor-pointer transition-all duration-200",
                 sidebarCollapsed ? "py-2.5 justify-center" : "py-2.5 px-3",
                 isActive
-                  ? "border border-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                  ? "border border-transparent"
                   : "border border-transparent hover:bg-white/[0.045] hover:border-white/[0.05]"
               )}
               title={tab.labelCn}
               style={
                 isActive
                   ? {
-                      background: `linear-gradient(135deg, ${tab.accent}1f, rgba(255,255,255,0.012))`,
+                      background: `linear-gradient(135deg, ${tab.accent}1f, var(--surface-card))`,
                       borderColor: `${tab.accent}36`,
-                      boxShadow: `0 10px 24px rgba(0,0,0,0.28)`,
+                      boxShadow: "var(--card-inset), 0 10px 24px rgba(0,0,0,0.18)",
                     }
                   : undefined
               }
@@ -157,7 +159,7 @@ export function Sidebar() {
                   }
                 />
               )}
-              <span style={{ color: isActive ? tab.accent : "rgba(255,255,255,0.45)" }} className="transition-colors">
+              <span style={{ color: isActive ? tab.accent : "rgba(128,145,176,0.7)" }} className="transition-colors">
                 <TabIcon />
               </span>
               {!sidebarCollapsed && (
@@ -178,7 +180,7 @@ export function Sidebar() {
         })}
       </div>
 
-      <div className={cn("h-px bg-white/[0.08]", sidebarCollapsed ? "mx-3" : "mx-4")} />
+      <div className={cn("h-px", sidebarCollapsed ? "mx-3" : "mx-4")} style={{ background: "rgba(128,145,176,0.10)" }} />
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className={cn("px-3 pt-3", sidebarCollapsed ? "pb-2" : "pb-3")}>
@@ -224,7 +226,7 @@ export function Sidebar() {
 
         {!sidebarCollapsed && (
           <>
-            <div className="h-px bg-white/[0.08] mx-4" />
+            <div className="h-px mx-4" style={{ background: "rgba(128,145,176,0.10)" }} />
             <div className="px-4 py-3">
               <div className="flex items-center justify-between mb-2.5">
                 <div className="text-[10px] font-semibold text-white/30 tracking-[1.2px] uppercase">
@@ -307,7 +309,7 @@ export function Sidebar() {
 
         {!sidebarCollapsed && (
           <>
-            <div className="h-px bg-white/[0.08] mx-4" />
+            <div className="h-px mx-4" style={{ background: "rgba(128,145,176,0.10)" }} />
             <div className="px-4 py-3">
               <div className="text-[10px] font-semibold text-white/30 tracking-[1.2px] uppercase mb-2.5">
                 常用 Agent
@@ -345,15 +347,18 @@ export function Sidebar() {
         )}
       </div>
 
+      {/* ── User Profile Section ── */}
       <div
         className={cn(
-          "flex items-center gap-2.5 border-t border-white/[0.08]",
-          sidebarCollapsed ? "py-4 justify-center" : "py-4 px-4"
+          "relative flex items-center gap-2.5 cursor-pointer select-none transition-colors",
+          sidebarCollapsed ? "py-4 justify-center px-2" : "py-4 px-3"
         )}
+        style={{ borderTop: "1px solid rgba(128,145,176,0.10)" }}
+        onClick={() => setProfileOpen(true)}
       >
         <div
-          className="w-8 h-8 rounded-[10px] flex items-center justify-center text-[13px] font-semibold text-white shrink-0"
-          style={{ background: "linear-gradient(135deg, #7f95b8, #a7b6d0)" }}
+          className="w-8 h-8 rounded-[10px] flex items-center justify-center text-[13px] font-semibold text-white shrink-0 transition-transform hover:scale-105"
+          style={{ background: "linear-gradient(135deg, #4A9EFF, #8B5CF6)" }}
         >
           W
         </div>
@@ -363,11 +368,29 @@ export function Sidebar() {
               <div className="text-[13px] font-medium text-white/85">Wang Lei</div>
               <div className="text-[11px] text-white/35">Enterprise</div>
             </div>
-            <div className="cursor-pointer text-white/30 hover:text-white/50 transition-colors">
-              <Icons.Settings />
+            <div className="flex items-center gap-1">
+              {/* Theme toggle button */}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
+                className="w-7 h-7 rounded-[8px] flex items-center justify-center transition-colors text-white/30 hover:text-white/60 hover:bg-white/[0.06]"
+                title={appTheme === "dark" ? "切换到亮色模式" : "切换到暗色模式"}
+              >
+                {appTheme === "dark" ? <Icons.Sun size={14} /> : <Icons.Moon size={14} />}
+              </button>
+              {/* Profile expand indicator */}
+              <div
+                className="w-5 h-5 flex items-center justify-center text-white/25 transition-transform duration-200"
+                style={{ transform: profileOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+              >
+                <Icons.ChevronUp size={12} />
+              </div>
             </div>
           </>
         )}
+
+        {/* Profile Modal */}
+        <UserProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
       </div>
     </div>
   );
