@@ -1,6 +1,6 @@
 import type { BatchColumn, BatchDataQuality, BatchSchemaRouting, BatchStats } from "@/types/agent";
 
-export type SkillTaskStatus = "pending" | "running" | "completed" | "failed";
+export type SkillTaskStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
 export type SkillMarketStatus = "ready" | "coming";
 
 export interface SkillDefinition {
@@ -52,6 +52,83 @@ export interface SkillConfigSchema {
   fields: SkillConfigField[];
 }
 
+export interface SkillManifest {
+  id: string;
+  version: string;
+  name: string;
+  display_name: string;
+  description: string;
+  category: string;
+  status: "ready" | "beta" | "coming";
+  author: string;
+  tags: string[];
+  entrypoints: {
+    standalone: boolean;
+    chat_invoke: boolean;
+    external_api: boolean;
+  };
+  triggers: {
+    mention_ids: string[];
+    mention_aliases: string[];
+  };
+  execution: {
+    mode: "agent_workflow" | "python_callable" | "http_adapter";
+    agent_id?: string;
+    driver?: string;
+  };
+  input_schema: {
+    type?: string;
+    required: string[];
+    properties: Record<string, Record<string, unknown>>;
+  };
+  output_schema: {
+    type?: string;
+    required: string[];
+    properties?: Record<string, Record<string, unknown>>;
+  };
+  permissions: string[];
+  ui: {
+    theme_accent?: string;
+    chat_card?: {
+      show_fields?: string[];
+      allow_file_upload?: boolean;
+    };
+    standalone?: {
+      show_trace?: boolean;
+      show_export?: boolean;
+    };
+  };
+}
+
+export interface SkillCatalogItem {
+  id: string;
+  version: string;
+  name: string;
+  display_name: string;
+  description: string;
+  category: string;
+  status: "ready" | "beta" | "coming";
+  author: string;
+  tags: string[];
+  entrypoints: {
+    standalone: boolean;
+    chat_invoke: boolean;
+    external_api: boolean;
+  };
+}
+
+export interface SkillRunRequest {
+  skill_id: string;
+  input: Record<string, unknown>;
+  context?: Record<string, unknown>;
+}
+
+export interface SkillRunCreateResponse {
+  run_id: string;
+  skill_id: string;
+  status: SkillTaskStatus;
+}
+
 export interface SkillProgress {
   stage: string;
   progress: number;
@@ -83,7 +160,8 @@ export interface SkillTraceEvent {
 }
 
 export interface SkillTask {
-  task_id: string;
+  task_id?: string;
+  run_id?: string;
   skill_id: string;
   status: SkillTaskStatus;
   progress: number;
@@ -94,6 +172,8 @@ export interface SkillTask {
 
 export interface SkillResultData {
   task_id: string;
+  run_id?: string;
+  skill_id?: string;
   skill_type?: string;
   summary: string;
   metadata: { duration?: number; data_points?: number; [key: string]: unknown };

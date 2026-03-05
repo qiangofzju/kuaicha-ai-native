@@ -50,7 +50,7 @@ export function useSkillWebSocket(taskId: string | null, skillId?: string) {
   const connect = useCallback(
     (id: string) => {
       cleanup();
-      const ws = new WebSocket(getWsUrl(`/ws/skills/${id}`));
+      const ws = new WebSocket(getWsUrl(`/ws/skills/runs/${id}`));
       wsRef.current = ws;
 
       ws.onopen = () => {

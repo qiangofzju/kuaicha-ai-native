@@ -3,16 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BatchExecutionCanvas } from "@/components/agent/BatchExecutionCanvas";
-import { BatchResult } from "@/components/agent/BatchResult";
 import { SkillConfig } from "@/components/skills/SkillConfig";
+import { SkillExecutionCanvas } from "@/components/skills/runtime/SkillExecutionCanvas";
+import { SkillResultPanel } from "@/components/skills/runtime/SkillResultPanel";
 import { useSkillStore } from "@/stores/skillStore";
 import { useSkillWebSocket } from "@/hooks/useSkillWebSocket";
 import { theme } from "@/styles/theme";
 import { getAgentIcon } from "@/components/shared/Icons";
 import { skillService } from "@/services/skillService";
 import type { SkillDefinition } from "@/types/skill";
-import type { AgentDefinition } from "@/types/agent";
 
 export default function SkillExecutionPage() {
   const params = useParams();
@@ -23,9 +22,9 @@ export default function SkillExecutionPage() {
   const selectedSkill = useSkillStore((s) => s.selectedSkill);
   const selectSkill = useSkillStore((s) => s.selectSkill);
   const loadSkills = useSkillStore((s) => s.loadSkills);
-  const configSchema = useSkillStore((s) => s.configSchema);
-  const loadingSchema = useSkillStore((s) => s.loadingSchema);
-  const loadSchema = useSkillStore((s) => s.loadSchema);
+  const manifest = useSkillStore((s) => s.manifest);
+  const loadingManifest = useSkillStore((s) => s.loadingManifest);
+  const loadManifest = useSkillStore((s) => s.loadManifest);
   const currentTaskId = useSkillStore((s) => s.currentTaskId);
   const taskStatus = useSkillStore((s) => s.taskStatus);
   const progress = useSkillStore((s) => s.progress);
@@ -52,10 +51,8 @@ export default function SkillExecutionPage() {
   }, [skill, selectSkill]);
 
   useEffect(() => {
-    if (skillId === "batch") {
-      loadSchema(skillId);
-    }
-  }, [skillId, loadSchema]);
+    loadManifest(skillId);
+  }, [skillId, loadManifest]);
 
   useEffect(() => {
     if (taskStatus === "running" || taskStatus === "pending") {
@@ -72,7 +69,7 @@ export default function SkillExecutionPage() {
   }
 
   const SkillIcon = getAgentIcon(skill.icon);
-  const accent = theme.colors.modules.skills;
+  const accent = manifest?.ui?.theme_accent || skill.color || theme.colors.modules.skills;
   const ready = skill.market_status === "ready";
   const resultReady = taskStatus === "completed" && !!result && !showResult;
   const phase = showResult && result ? "result" : taskStatus === "running" || taskStatus === "completed" ? "progress" : "config";
@@ -100,26 +97,24 @@ export default function SkillExecutionPage() {
         <div
           className="relative overflow-hidden p-6 rounded-2xl border"
           style={{
-            background: `linear-gradient(135deg, ${accent}16, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.012))`,
-            borderColor: `${accent}40`,
+            background: "var(--card-bg)",
+            borderColor: "var(--card-border)",
+            boxShadow: "var(--card-inset), var(--shadow-mid)",
           }}
         >
-          <div className="absolute -top-14 -right-10 w-56 h-56 rounded-full" style={{ background: `radial-gradient(circle, ${accent}1a, transparent 70%)` }} />
+          <div className="absolute -top-14 -right-10 w-56 h-56 rounded-full" style={{ background: `radial-gradient(circle, ${accent}14, transparent 70%)` }} />
           <div className="relative flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-start gap-4">
-              <div
-                className="w-12 h-12 rounded-xl border flex items-center justify-center"
-                style={{ background: `${skill.color}18`, borderColor: `${skill.color}30`, color: skill.color }}
-              >
+              <div className="w-12 h-12 rounded-xl border flex items-center justify-center" style={{ background: `${skill.color}14`, borderColor: `${skill.color}30`, color: skill.color }}>
                 <SkillIcon />
               </div>
               <div>
-                <h2 className="text-[22px] leading-none font-semibold text-white">{skill.name}</h2>
-                <p className="text-[13px] text-white/42 mt-2 max-w-[680px]">{skill.description}</p>
-                <p className="text-[11px] text-white/35 mt-1.5">{skill.author}</p>
+                <h2 className="text-[20px] leading-none font-semibold text-white">{manifest?.display_name || skill.name}</h2>
+                <p className="text-[13px] text-white/42 mt-2 max-w-[680px]">{manifest?.description || skill.description}</p>
+                <p className="text-[11px] text-white/35 mt-1.5">{manifest?.author || skill.author}</p>
               </div>
             </div>
-            <div className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 py-2">
+            <div className="rounded-xl border border-white/[0.1] bg-white/[0.015] px-3 py-2">
               <p className="text-[10px] text-white/35">当前状态</p>
               <p className="text-[12px] mt-0.5" style={{ color: resultReady ? "#10B981" : accent }}>
                 {phase === "config" ? "待配置" : phase === "result" ? "已完成" : resultReady ? "已完成（待查看结果）" : "执行中"}
@@ -152,12 +147,12 @@ export default function SkillExecutionPage() {
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_330px]">
             <div className="min-w-0 space-y-4">
               {phase === "config" && (
-                loadingSchema ? (
+                loadingManifest ? (
                   <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.08] text-white/40 text-[13px]">
                     正在加载技能配置...
                   </div>
-                ) : configSchema ? (
-                  <SkillConfig skill={skill} schema={configSchema} />
+                ) : manifest ? (
+                  <SkillConfig skill={skill} manifest={manifest} />
                 ) : (
                   <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.08] text-white/40 text-[13px]">
                     无法加载技能配置
@@ -166,39 +161,29 @@ export default function SkillExecutionPage() {
               )}
 
               {phase === "progress" && (
-                <BatchExecutionCanvas
+                <SkillExecutionCanvas
                   progress={progress}
                   traceEvents={traceEvents}
                   onStop={taskStatus === "running" ? cancelExecution : undefined}
                   resultReady={resultReady}
                   onViewResult={() => setShowResult(true)}
                   accentColor={accent}
-                  title="技能执行轨迹"
-                  subtitle="流式展示当前步骤与关键事件（脱敏）"
                 />
               )}
 
               {phase === "result" && result && (
-                <BatchResult
-                  agent={{
-                    id: skill.id,
-                    name: skill.name,
-                    description: skill.description,
-                    color: skill.color,
-                    tags: skill.tags,
-                    icon: skill.icon,
-                    status: skill.status,
-                  } as AgentDefinition}
+                <SkillResultPanel
+                  skill={skill}
                   result={result}
                   onBack={() => router.push("/workspace/skills")}
                   onReset={resetExecution}
-                  exportResultFn={skillService.exportResult}
+                  onExport={skillService.exportRunResult}
                 />
               )}
             </div>
 
             <aside className="xl:sticky xl:top-4 h-fit">
-              <div className="rounded-2xl border border-white/[0.1] bg-[linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] p-5">
+              <div className="rounded-2xl border border-white/[0.1] bg-white/[0.015] p-5" style={{ boxShadow: "var(--card-inset)" }}>
                 <h3 className="text-[13px] text-white/75 mb-2">执行状态</h3>
                 <p className="text-[16px] font-semibold" style={{ color: resultReady ? "#10B981" : accent }}>
                   {phase === "config" ? "待配置" : phase === "result" ? "结果页" : resultReady ? "已完成（待查看结果）" : "执行中"}

@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import type {
   PurchaseRecord,
-  SkillConfigSchema,
   SkillDefinition,
+  SkillManifest,
   SkillProgress,
   SkillResultData,
   SkillStoreSection,
@@ -17,7 +17,7 @@ interface SkillState {
   mySkills: SkillDefinition[];
   purchaseRecords: PurchaseRecord[];
   selectedSkill: SkillDefinition | null;
-  configSchema: SkillConfigSchema | null;
+  manifest: SkillManifest | null;
   currentTaskId: string | null;
   taskStatus: SkillTaskStatus;
   progress: SkillProgress | null;
@@ -27,7 +27,7 @@ interface SkillState {
   traceEvents: SkillTraceEvent[];
 
   loadingSkills: boolean;
-  loadingSchema: boolean;
+  loadingManifest: boolean;
   loadingStore: boolean;
   loadingPurchaseRecords: boolean;
   executing: boolean;
@@ -40,7 +40,7 @@ interface SkillState {
   loadPurchaseRecords: () => Promise<void>;
   loadMarketplace: () => Promise<void>;
   selectSkill: (skill: SkillDefinition) => void;
-  loadSchema: (skillId: string) => Promise<void>;
+  loadManifest: (skillId: string) => Promise<void>;
   setFormValue: (field: string, value: unknown) => void;
   executeSkill: () => Promise<void>;
   updateProgress: (progress: SkillProgress) => void;
@@ -67,16 +67,39 @@ const initialExecutionState = {
   error: null,
 };
 
+function buildDefaultFormValues(manifest: SkillManifest): Record<string, unknown> {
+  const defaults: Record<string, unknown> = {};
+  const properties = manifest.input_schema?.properties || {};
+
+  for (const [name, schema] of Object.entries(properties)) {
+    if (Array.isArray(schema.enum)) {
+      defaults[name] = schema.default ?? schema.enum[0] ?? "";
+      continue;
+    }
+    if (schema.type === "array") {
+      defaults[name] = Array.isArray(schema.default) ? schema.default : [];
+      continue;
+    }
+    defaults[name] = schema.default ?? "";
+  }
+
+  if (!defaults.scenario) {
+    defaults.scenario = "filter";
+  }
+
+  return defaults;
+}
+
 export const useSkillStore = create<SkillState>((set, get) => ({
   skills: [],
   storeSections: [],
   mySkills: [],
   purchaseRecords: [],
   selectedSkill: null,
-  configSchema: null,
+  manifest: null,
   formValues: {},
   loadingSkills: false,
-  loadingSchema: false,
+  loadingManifest: false,
   loadingStore: false,
   loadingPurchaseRecords: false,
   ...initialExecutionState,
@@ -132,36 +155,26 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   },
 
   loadMarketplace: async () => {
-    await Promise.all([
-      get().loadSkills(),
-      get().loadStore(),
-      get().loadMySkills(),
-    ]);
+    await Promise.all([get().loadSkills(), get().loadStore(), get().loadMySkills()]);
   },
 
   selectSkill: (skill) => {
     set({ selectedSkill: skill });
   },
 
-  loadSchema: async (skillId) => {
-    set({ loadingSchema: true, error: null, configSchema: null, formValues: {} });
+  loadManifest: async (skillId) => {
+    set({ loadingManifest: true, error: null, manifest: null, formValues: {} });
     try {
-      const schema = await skillService.getSchema(skillId);
-      const defaultValues: Record<string, unknown> = {};
-      for (const field of schema.fields) {
-        if (field.default !== undefined) {
-          defaultValues[field.name] = field.default;
-        } else if (field.type === "multiselect") {
-          defaultValues[field.name] = [];
-        } else {
-          defaultValues[field.name] = "";
-        }
-      }
-      set({ configSchema: schema, formValues: defaultValues, loadingSchema: false });
+      const manifest = await skillService.getManifest(skillId);
+      set({
+        manifest,
+        formValues: buildDefaultFormValues(manifest),
+        loadingManifest: false,
+      });
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Failed to load schema",
-        loadingSchema: false,
+        error: err instanceof Error ? err.message : "Failed to load manifest",
+        loadingManifest: false,
       });
     }
   },
@@ -173,32 +186,14 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   },
 
   executeSkill: async () => {
-    const { selectedSkill, formValues, configSchema } = get();
+    const { selectedSkill, formValues } = get();
     if (!selectedSkill) return;
 
-    let target = "";
-    const params: Record<string, unknown> = {};
-
-    if (configSchema) {
-      for (const field of configSchema.fields) {
-        const val = formValues[field.name];
-        if (field.name === "target" || field.name === "company" || field.name === "company_name") {
-          target = String(val || "");
-        } else {
-          params[field.name] = val;
-        }
-      }
-    }
-
-    if (!target && configSchema) {
-      const firstTextField = configSchema.fields.find((f) => f.type === "text");
-      if (firstTextField) {
-        target = String(formValues[firstTextField.name] || "");
-      }
-    }
-    if (Array.isArray(formValues.company_names) && formValues.company_names.length > 0) {
-      params.company_names = formValues.company_names;
-    }
+    const inputPayload: Record<string, unknown> = {
+      ...formValues,
+      query: String(formValues.query ?? ""),
+      scenario: String(formValues.scenario ?? "filter"),
+    };
 
     set({
       executing: true,
@@ -211,9 +206,13 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     });
 
     try {
-      const response = await skillService.execute(selectedSkill.id, target, params);
+      const response = await skillService.createRun({
+        skill_id: selectedSkill.id,
+        input: inputPayload,
+        context: { source: "standalone" },
+      });
       set({
-        currentTaskId: response.task_id,
+        currentTaskId: response.run_id,
         taskStatus: "running",
         executing: false,
       });
@@ -259,7 +258,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   fetchResult: async (taskId) => {
     set({ loadingResult: true });
     try {
-      const result = await skillService.getTaskResult(taskId);
+      const result = await skillService.getRunResult(taskId);
       set({ result, taskStatus: "completed", loadingResult: false });
     } catch (err) {
       set({
@@ -273,7 +272,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     const taskId = get().currentTaskId;
     if (!taskId) return;
     try {
-      await skillService.cancelTask(taskId);
+      await skillService.cancelRun(taskId);
     } catch {
       // ignore cancel errors
     }
@@ -291,7 +290,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       mySkills: [],
       purchaseRecords: [],
       selectedSkill: null,
-      configSchema: null,
+      manifest: null,
       formValues: {},
       ...initialExecutionState,
     });

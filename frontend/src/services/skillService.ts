@@ -1,9 +1,13 @@
 import { apiFetch } from "./api";
 import type {
   PurchaseRecord,
+  SkillCatalogItem,
   SkillConfigSchema,
   SkillDefinition,
+  SkillManifest,
   SkillResultData,
+  SkillRunCreateResponse,
+  SkillRunRequest,
   SkillStoreSection,
   SkillTask,
 } from "@/types/skill";
@@ -23,40 +27,28 @@ export const skillService = {
       body: JSON.stringify(payload),
     }),
 
-  getSchema: (id: string) => apiFetch<SkillConfigSchema>(`/api/skills/${id}/schema`),
+  getCatalog: () => apiFetch<SkillCatalogItem[]>("/api/skills/catalog"),
 
-  execute: (id: string, target: string, params: Record<string, unknown> = {}) =>
-    apiFetch<{ task_id: string }>(`/api/skills/${id}/execute`, {
+  getManifest: (id: string) => apiFetch<SkillManifest>(`/api/skills/${id}/manifest`),
+
+  createRun: (payload: SkillRunRequest) =>
+    apiFetch<SkillRunCreateResponse>("/api/skills/runs", {
       method: "POST",
-      body: JSON.stringify({ target, params }),
+      body: JSON.stringify(payload),
     }),
 
-  getTaskStatus: (taskId: string) => apiFetch<SkillTask>(`/api/skills/tasks/${taskId}`),
+  getRunStatus: (runId: string) => apiFetch<SkillTask>(`/api/skills/runs/${runId}`),
 
-  cancelTask: (taskId: string) =>
-    apiFetch<{ task_id: string; status: string }>(`/api/skills/tasks/${taskId}`, {
-      method: "DELETE",
+  cancelRun: (runId: string) =>
+    apiFetch<{ run_id: string; status: string }>(`/api/skills/runs/${runId}/cancel`, {
+      method: "POST",
     }),
 
-  getTaskResult: (taskId: string) => apiFetch<SkillResultData>(`/api/skills/tasks/${taskId}/result`),
+  getRunResult: (runId: string) => apiFetch<SkillResultData>(`/api/skills/runs/${runId}/result`),
 
-  uploadCompanyList: async (file: File) => {
+  exportRunResult: async (runId: string, format: "pdf" | "excel") => {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const fd = new FormData();
-    fd.append("file", file);
-    const response = await fetch(`${API_BASE}/api/skills/batch/upload-companies`, {
-      method: "POST",
-      body: fd,
-    });
-    if (!response.ok) {
-      throw new Error("文件上传失败");
-    }
-    return response.json() as Promise<{ companies: string[]; count: number; filename: string }>;
-  },
-
-  exportResult: async (taskId: string, format: "pdf" | "excel") => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const res = await fetch(`${API_BASE}/api/skills/tasks/${taskId}/export/${format}`);
+    const res = await fetch(`${API_BASE}/api/skills/runs/${runId}/export/${format}`);
     if (!res.ok) {
       let detail = `Export failed: ${res.status}`;
       try {
@@ -79,6 +71,50 @@ export const skillService = {
     const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
     const serverFileName = fileNameMatch?.[1];
     const ext = format === "pdf" ? "pdf" : "xlsx";
+    const finalFileName = serverFileName || `skill_report_${runId.slice(0, 8)}.${ext}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = finalFileName;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    return {
+      fallback: res.headers.get("x-export-fallback"),
+      filename: finalFileName,
+    };
+  },
+
+  // Compatibility endpoints
+  getSchema: (id: string) => apiFetch<SkillConfigSchema>(`/api/skills/${id}/schema`),
+
+  execute: (id: string, target: string, params: Record<string, unknown> = {}) =>
+    apiFetch<{ task_id: string }>(`/api/skills/${id}/execute`, {
+      method: "POST",
+      body: JSON.stringify({ target, params }),
+    }),
+
+  getTaskStatus: (taskId: string) => apiFetch<SkillTask>(`/api/skills/tasks/${taskId}`),
+
+  cancelTask: (taskId: string) =>
+    apiFetch<{ task_id: string; status: string }>(`/api/skills/tasks/${taskId}`, {
+      method: "DELETE",
+    }),
+
+  getTaskResult: (taskId: string) => apiFetch<SkillResultData>(`/api/skills/tasks/${taskId}/result`),
+
+  exportResult: async (taskId: string, format: "pdf" | "excel") => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const res = await fetch(`${API_BASE}/api/skills/tasks/${taskId}/export/${format}`);
+    if (!res.ok) {
+      throw new Error(`Export failed: ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    const contentDisposition = res.headers.get("content-disposition") || "";
+    const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+    const serverFileName = fileNameMatch?.[1];
+    const ext = format === "pdf" ? "pdf" : "xlsx";
     const finalFileName = serverFileName || `skill_report_${taskId.slice(0, 8)}.${ext}`;
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -91,5 +127,19 @@ export const skillService = {
       fallback: res.headers.get("x-export-fallback"),
       filename: finalFileName,
     };
+  },
+
+  uploadCompanyList: async (file: File) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const fd = new FormData();
+    fd.append("file", file);
+    const response = await fetch(`${API_BASE}/api/skills/batch/upload-companies`, {
+      method: "POST",
+      body: fd,
+    });
+    if (!response.ok) {
+      throw new Error("文件上传失败");
+    }
+    return response.json() as Promise<{ companies: string[]; count: number; filename: string }>;
   },
 };
