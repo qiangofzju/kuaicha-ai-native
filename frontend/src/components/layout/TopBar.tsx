@@ -10,11 +10,18 @@ const MODULE_META: Record<string, { icon: React.FC; title: string; subtitle: str
   chat: { icon: Icons.Chat, title: "智能对话", subtitle: "企业信息即时问答", accent: theme.colors.modules.chat },
   agent: { icon: Icons.Agent, title: "智能体工坊", subtitle: "6 个可用智能体", accent: theme.colors.modules.agent },
   datashow: { icon: Icons.Datashow, title: "数据洞察", subtitle: "可视化分析工作台", accent: theme.colors.modules.datashow },
+  skills: { icon: Icons.Skills, title: "技能广场", subtitle: "技能商店与执行工作台", accent: theme.colors.modules.skills },
 };
 
 export function TopBar() {
   const pathname = usePathname();
-  const moduleId = pathname.includes("/agent") ? "agent" : pathname.includes("/datashow") ? "datashow" : "chat";
+  const moduleId = pathname.includes("/agent")
+    ? "agent"
+    : pathname.includes("/datashow")
+      ? "datashow"
+      : pathname.includes("/skills")
+        ? "skills"
+        : "chat";
   const meta = MODULE_META[moduleId];
   const ModuleIcon = meta.icon;
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -33,7 +40,10 @@ export function TopBar() {
 
   return (
     <>
-      <div className="h-[58px] flex items-center justify-between px-7 border-b border-white/[0.06] shrink-0 backdrop-blur-sm bg-[linear-gradient(180deg,rgba(10,14,27,0.92),rgba(10,14,27,0.78))]">
+      <div
+        className="h-[58px] flex items-center justify-between px-7 border-b shrink-0 backdrop-blur-sm"
+        style={{ background: "var(--bg-topbar)", borderBottomColor: "rgba(128,145,176,0.12)" }}
+      >
         <div className="flex items-center gap-3.5">
           <div className="flex items-center gap-2.5 text-[15px] font-semibold text-white/95">
             <span

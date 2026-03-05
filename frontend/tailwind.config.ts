@@ -47,6 +47,7 @@ const config: Config = {
         chat: "#7F95B8",
         agent: "#A7B6D0",
         datashow: "#D2AE67",
+        skills: "#F59E0B",
         // Risk levels
         "risk-high": "#EF4444",
         "risk-medium": "#F59E0B",

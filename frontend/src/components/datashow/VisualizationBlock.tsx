@@ -23,7 +23,7 @@ export function VisualizationBlock({ block, onNodeClick }: VisualizationBlockPro
   const typeInfo = TYPE_LABELS[block.type] || { label: block.type, icon: "◇" };
 
   return (
-    <div className="rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_14px_42px_rgba(0,0,0,0.28)] overflow-hidden">
+    <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[11px] text-datashow/65">{typeInfo.icon}</span>

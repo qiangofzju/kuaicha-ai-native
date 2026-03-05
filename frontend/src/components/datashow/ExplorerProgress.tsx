@@ -41,7 +41,7 @@ export function ExplorerProgress({ onStop }: ExplorerProgressProps = {}) {
       <div
         className="rounded-2xl border p-5"
         style={{
-          background: "linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.012))",
+          background: "var(--card-bg)",
           borderColor: `${moduleAccent}33`,
         }}
       >
@@ -60,19 +60,19 @@ export function ExplorerProgress({ onStop }: ExplorerProgressProps = {}) {
                         ? `${moduleAccent}2e`
                         : isCurrent
                         ? `${moduleAccent}1f`
-                        : "rgba(255,255,255,0.03)",
+                        : "var(--progress-stage-pending-bg)",
                       borderWidth: 1,
                       borderStyle: "solid",
                       borderColor: isCompleted
                         ? `${moduleAccent}5e`
                         : isCurrent
                         ? `${moduleAccent}46`
-                        : "rgba(255,255,255,0.06)",
+                        : "var(--progress-stage-pending-border)",
                       color: isCompleted
                         ? moduleAccent
                         : isCurrent
                         ? `${moduleAccent}cc`
-                        : "rgba(255,255,255,0.25)",
+                        : "var(--text-weak)",
                     }}
                   >
                     {isCompleted ? "✓" : i + 1}
@@ -84,7 +84,7 @@ export function ExplorerProgress({ onStop }: ExplorerProgressProps = {}) {
                         ? `${moduleAccent}b3`
                         : isCurrent
                         ? `${moduleAccent}99`
-                        : "rgba(255,255,255,0.2)",
+                        : "var(--text-weak)",
                     }}
                   >
                     {stage.name}
@@ -96,7 +96,7 @@ export function ExplorerProgress({ onStop }: ExplorerProgressProps = {}) {
                     style={{
                       background: i < currentStageIndex
                         ? `${moduleAccent}30`
-                        : "rgba(255,255,255,0.04)",
+                        : "var(--progress-connector)",
                     }}
                   />
                 )}

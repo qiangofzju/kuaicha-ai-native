@@ -123,9 +123,10 @@ export function AgentConfig({ schema }: AgentConfigProps) {
 
   return (
     <div
-      className="p-6 rounded-2xl border animate-fadeIn shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_20px_56px_rgba(0,0,0,0.35)]"
+      className="p-6 rounded-2xl border animate-fadeIn"
       style={{
-        background: `linear-gradient(135deg, ${moduleAccent}14, rgba(255,255,255,0.024))`,
+        background: `linear-gradient(135deg, ${moduleAccent}14, var(--select-option-bg))`,
+        boxShadow: `var(--card-inset), var(--shadow-hard)`,
         borderColor: `${moduleAccent}36`,
       }}
     >
@@ -149,7 +150,7 @@ export function AgentConfig({ schema }: AgentConfigProps) {
                 style={{
                   borderColor: `${moduleAccent}30`,
                   background: `${moduleAccent}10`,
-                  color: "rgba(255,255,255,0.68)",
+                  color: "var(--text-sub)",
                 }}
               >
                 {example}
@@ -259,13 +260,13 @@ export function AgentConfig({ schema }: AgentConfigProps) {
                       style={{
                         borderColor: selected
                           ? `${moduleAccent}48`
-                          : "rgba(255,255,255,0.08)",
+                          : "var(--select-option-border)",
                         background: selected
                           ? `${moduleAccent}14`
-                          : "rgba(255,255,255,0.02)",
+                          : "var(--select-option-bg)",
                         color: selected
                           ? moduleAccent
-                          : "rgba(255,255,255,0.5)",
+                          : "var(--text-muted)",
                       }}
                     >
                       {opt.label}
@@ -303,13 +304,13 @@ export function AgentConfig({ schema }: AgentConfigProps) {
                       style={{
                         borderColor: selected
                           ? `${moduleAccent}48`
-                          : "rgba(255,255,255,0.08)",
+                          : "var(--select-option-border)",
                         background: selected
                           ? `${moduleAccent}14`
-                          : "rgba(255,255,255,0.02)",
+                          : "var(--select-option-bg)",
                         color: selected
                           ? moduleAccent
-                          : "rgba(255,255,255,0.5)",
+                          : "var(--text-muted)",
                       }}
                     >
                       {selected && (
@@ -341,10 +342,10 @@ export function AgentConfig({ schema }: AgentConfigProps) {
                   style={{
                     borderColor: uploadedFiles[field.name]
                       ? `${moduleAccent}50`
-                      : "rgba(255,255,255,0.1)",
+                      : "var(--upload-area-border)",
                     background: uploadedFiles[field.name]
                       ? `${moduleAccent}08`
-                      : "rgba(255,255,255,0.01)",
+                      : "var(--upload-area-bg)",
                   }}
                   onClick={() => fileRefs.current[field.name]?.click()}
                 >
