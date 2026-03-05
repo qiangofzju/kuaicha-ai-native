@@ -1,4 +1,4 @@
-"""Skills marketplace schemas."""
+"""Skills marketplace and runtime schemas."""
 
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ class SkillConfigField(BaseModel):
     type: str
     required: bool
     placeholder: Optional[str] = None
-    options: Optional[list[dict]] = None
+    options: Optional[list[dict[str, str]]] = None
     default: Optional[Any] = None
 
 
@@ -93,7 +93,7 @@ class SkillConfigSchema(BaseModel):
 
 class ExecuteSkillRequest(BaseModel):
     target: str = ""
-    params: dict = Field(default_factory=dict)
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 class SkillTaskStatusResponse(BaseModel):
@@ -114,4 +114,57 @@ class SkillResultResponse(BaseModel):
     task_id: str
     skill_type: str
     summary: str
-    metadata: dict = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SkillCatalogItem(BaseModel):
+    id: str
+    version: str
+    name: str
+    display_name: str
+    description: str
+    category: str
+    status: SkillStatus
+    author: str
+    tags: list[str]
+    entrypoints: dict[str, bool]
+
+
+class SkillManifestResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    version: str
+    name: str
+    display_name: str
+
+
+class SkillRunCreateRequest(BaseModel):
+    skill_id: str
+    input: dict[str, Any] = Field(default_factory=dict)
+    context: dict[str, Any] = Field(default_factory=dict)
+
+
+class SkillRunCreateResponse(BaseModel):
+    run_id: str
+    skill_id: str
+    status: TaskStatus
+
+
+class SkillRunStatusResponse(BaseModel):
+    run_id: str
+    skill_id: str
+    status: TaskStatus
+    progress: float
+    stage: str
+    message: str
+    created_at: str
+
+
+class SkillRunResultResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+
+class SkillRunCancelResponse(BaseModel):
+    run_id: str
+    status: str

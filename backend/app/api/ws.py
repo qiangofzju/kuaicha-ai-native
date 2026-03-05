@@ -157,3 +157,8 @@ async def agent_progress_ws(websocket: WebSocket, task_id: str):
 @ws_router.websocket("/ws/skills/{task_id}")
 async def skill_progress_ws(websocket: WebSocket, task_id: str):
     await _task_progress_ws(websocket=websocket, task_id=task_id, msg_prefix="skill")
+
+
+@ws_router.websocket("/ws/skills/runs/{run_id}")
+async def skill_run_progress_ws(websocket: WebSocket, run_id: str):
+    await _task_progress_ws(websocket=websocket, task_id=run_id, msg_prefix="skill")
