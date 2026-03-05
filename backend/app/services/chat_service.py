@@ -16,7 +16,6 @@ from app.skills_core.chat_invoke import skill_mention_parser
 from app.utils.logger import logger
 from app.utils.mock_data import (
     get_mock_chat_response,
-    get_mock_sessions,
     get_mock_streaming_chunks,
 )
 
@@ -29,11 +28,6 @@ class ChatService:
         self._sessions: dict[str, dict] = {}
         # session_id -> list of message dicts
         self._messages: dict[str, list[dict]] = {}
-
-        # Pre-populate with mock sessions
-        for s in get_mock_sessions():
-            self._sessions[s["id"]] = s
-            self._messages[s["id"]] = []
 
     # ------------------------------------------------------------------
     # Sessions
