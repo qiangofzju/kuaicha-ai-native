@@ -26,4 +26,14 @@ export const chatService = {
     content: string,
     options?: RequestInit,
   ) => apiStreamFetch(`/api/chat/sessions/${sessionId}/messages`, { content }, options),
+
+  invokeSkill: (
+    sessionId: string,
+    payload: {
+      skill_id: string;
+      input: Record<string, unknown>;
+      origin_message_id?: string;
+    },
+    options?: RequestInit,
+  ) => apiStreamFetch(`/api/chat/sessions/${sessionId}/skill-invocations`, payload, options),
 };

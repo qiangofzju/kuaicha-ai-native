@@ -2,8 +2,11 @@
 
 import type { ChatMessage } from "@/types/chat";
 import { Icons } from "@/components/shared/Icons";
+import { useChatStore } from "@/stores/chatStore";
 import { RiskCard } from "./RiskCard";
 import { ActionButtons } from "./ActionButtons";
+import { SkillInvokeCard } from "./SkillInvokeCard";
+import { SkillRunInlinePanel } from "./SkillRunInlinePanel";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -73,17 +76,16 @@ function renderMarkdown(content: string): string {
     html.push("</ul>");
   }
 
-  return html
-    .join("")
-    .replace(/@@CODE_BLOCK_(\d+)@@/g, (_match, idx: string) => {
-      const code = codeBlocks[Number(idx)] || "";
-      return `<pre><code>${code}</code></pre>`;
-    });
+  return html.join("").replace(/@@CODE_BLOCK_(\d+)@@/g, (_match, idx: string) => {
+    const code = codeBlocks[Number(idx)] || "";
+    return `<pre><code>${code}</code></pre>`;
+  });
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const renderedHtml = !isUser && message.content ? renderMarkdown(message.content) : "";
+  const invokeSkill = useChatStore((s) => s.invokeSkill);
 
   if (isUser) {
     return (
@@ -96,9 +98,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             boxShadow: "var(--chat-user-bubble-shadow)",
           }}
         >
-          <p className="text-[14px] text-white/90 leading-relaxed whitespace-pre-wrap break-words">
-            {message.content}
-          </p>
+          <p className="text-[14px] text-white/90 leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
         </div>
       </div>
     );
@@ -139,10 +139,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
 
           {message.content && (
-            <div
-              className="chat-markdown text-[14px] text-white/85 leading-[1.72] break-words"
-              dangerouslySetInnerHTML={{ __html: renderedHtml }}
-            />
+            <div className="chat-markdown text-[14px] text-white/85 leading-[1.72] break-words" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
           )}
 
           {message.isStreaming && message.content && (
@@ -154,22 +151,41 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           {message.isStreaming && !message.content && (
             <div className="flex items-center gap-1.5 py-2">
               {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-chat/60 animate-dotPulse"
-                  style={{ animationDelay: `${i * 0.2}s` }}
-                />
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-chat/60 animate-dotPulse" style={{ animationDelay: `${i * 0.2}s` }} />
               ))}
             </div>
           )}
         </div>
 
-        {message.details && message.details.length > 0 && (
-          <RiskCard details={message.details} />
+        {message.details && message.details.length > 0 && <RiskCard details={message.details} />}
+
+        {message.actions && message.actions.length > 0 && !message.isStreaming && <ActionButtons actions={message.actions} />}
+
+        {message.artifacts && message.artifacts.length > 0 && (
+          <div className="space-y-2.5">
+            {message.artifacts.map((artifact, idx) => {
+              if (artifact.type !== "skill_card") return null;
+              const running = (message.skill_runs || []).some(
+                (run) => run.skill_id === artifact.skill_id && (run.status === "pending" || run.status === "running"),
+              );
+              return (
+                <SkillInvokeCard
+                  key={`${artifact.skill_id}-${idx}`}
+                  artifact={artifact}
+                  running={running}
+                  onRun={(input) => invokeSkill(message.id, artifact.skill_id, input)}
+                />
+              );
+            })}
+          </div>
         )}
 
-        {message.actions && message.actions.length > 0 && !message.isStreaming && (
-          <ActionButtons actions={message.actions} />
+        {message.skill_runs && message.skill_runs.length > 0 && (
+          <div className="space-y-2.5">
+            {message.skill_runs.map((run) => (
+              <SkillRunInlinePanel key={run.run_id} run={run} />
+            ))}
+          </div>
         )}
       </div>
     </div>
