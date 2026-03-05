@@ -104,7 +104,7 @@ export default function SkillsPage() {
 
   return (
     <div className="h-full overflow-y-auto p-6 animate-fadeIn">
-      <div className="max-w-[1500px] mx-auto space-y-8">
+      <div className="max-w-[1280px] mx-auto space-y-7">
         <SkillMarketHeader
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -115,13 +115,20 @@ export default function SkillsPage() {
         />
 
         {hint && (
-          <div className="rounded-xl border border-skills/35 bg-skills/12 px-4 py-2.5 text-[13px] text-skills animate-fadeIn">
+          <div
+            className="rounded-xl border px-4 py-2.5 text-[13px] animate-fadeIn"
+            style={{
+              borderColor: "rgba(245,158,11,0.34)",
+              background: "rgba(245,158,11,0.12)",
+              color: "rgb(245,158,11)",
+            }}
+          >
             {hint}
           </div>
         )}
 
         {(loadingStore || loadingSkills) && (
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-8 text-center text-white/45">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.015] p-8 text-center text-white/45">
             正在加载技能广场...
           </div>
         )}
@@ -137,7 +144,7 @@ export default function SkillsPage() {
               />
             ))}
             {filteredSections.length === 0 && (
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-8 text-center text-white/40">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.015] p-8 text-center text-white/40">
                 没有匹配的技能
               </div>
             )}
@@ -145,8 +152,9 @@ export default function SkillsPage() {
         )}
 
         {!loadingStore && !loadingSkills && activeTab === "mine" && (
-          <div className="space-y-4">
-            <h3 className="text-[24px] font-semibold text-white/92">我的技能</h3>
+          <div className="space-y-3">
+            <h3 className="text-[22px] font-semibold text-white/92">我的技能</h3>
+            <p className="text-[13px] text-white/40">已拥有技能可直接进入执行，持续复用历史配置与流程。</p>
             <SkillGrid skills={filteredMine} onOpenSkill={handleOpenSkill} />
           </div>
         )}

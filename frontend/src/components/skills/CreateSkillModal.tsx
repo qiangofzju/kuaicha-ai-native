@@ -24,9 +24,12 @@ export function CreateSkillModal({ open, submitting = false, onClose, onSubmit }
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-[720px] rounded-2xl border border-white/[0.12] bg-[linear-gradient(155deg,rgba(255,255,255,0.06),rgba(255,255,255,0.018))] shadow-[0_22px_58px_rgba(0,0,0,0.45)]">
+      <div
+        className="w-full max-w-[720px] rounded-2xl border shadow-[0_22px_58px_rgba(0,0,0,0.45)]"
+        style={{ background: "var(--panel-bg)", borderColor: "var(--panel-border)" }}
+      >
         <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between">
-          <h3 className="text-[18px] text-white/92">创建技能（MVP Mock）</h3>
+          <h3 className="text-[16px] font-semibold text-white/90">创建技能（MVP Mock）</h3>
           <button type="button" onClick={onClose} className="text-white/45 hover:text-white/75 transition-colors text-[18px]">×</button>
         </div>
 
@@ -36,7 +39,7 @@ export function CreateSkillModal({ open, submitting = false, onClose, onSubmit }
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.12] text-[14px] text-white/86 placeholder:text-white/25 outline-none focus:border-skills/45"
+              className="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.1] text-[13px] text-white/86 placeholder:text-white/25 outline-none focus:border-skills/45"
               placeholder="例如：企业批量风险筛查技能"
             />
           </div>
@@ -46,7 +49,7 @@ export function CreateSkillModal({ open, submitting = false, onClose, onSubmit }
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.12] text-[14px] text-white/86 placeholder:text-white/25 outline-none focus:border-skills/45 resize-y"
+              className="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.1] text-[13px] text-white/86 placeholder:text-white/25 outline-none focus:border-skills/45 resize-y"
               placeholder="简述技能能力、输入输出、适用场景"
             />
           </div>
@@ -55,7 +58,7 @@ export function CreateSkillModal({ open, submitting = false, onClose, onSubmit }
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.12] text-[14px] text-white/86 outline-none focus:border-skills/45"
+              className="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.1] text-[13px] text-white/86 outline-none focus:border-skills/45"
             >
               <option value="general">通用</option>
               <option value="risk">风控</option>

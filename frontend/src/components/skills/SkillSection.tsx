@@ -15,16 +15,16 @@ export function SkillSection({ section, onOpenSkill, showMore = false }: SkillSe
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[30px] sm:text-[40px] leading-none font-semibold text-white/95 mb-2">{section.title}</h3>
-          {section.subtitle && <p className="text-[13px] text-white/38">{section.subtitle}</p>}
+          <h3 className="text-[22px] sm:text-[24px] leading-tight font-semibold text-white/92 mb-1.5">{section.title}</h3>
+          {section.subtitle && <p className="text-[13px] text-white/42">{section.subtitle}</p>}
         </div>
         {showMore && (
           <button
             type="button"
-            className="text-[22px] text-white/78 hover:text-white transition-colors inline-flex items-center gap-2"
+            className="text-[13px] text-white/72 hover:text-white transition-colors inline-flex items-center gap-1.5 border border-white/[0.1] rounded-lg px-3 py-1.5 bg-white/[0.015]"
           >
             查看更多
-            <span className="text-white/55">›</span>
+            <span className="text-white/55 text-[14px]">›</span>
           </button>
         )}
       </div>

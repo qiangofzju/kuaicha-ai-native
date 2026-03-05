@@ -18,51 +18,81 @@ export function SkillMarketHeader({
   onOpenCreate,
 }: SkillMarketHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-8">
-        <button
-          type="button"
-          onClick={() => onTabChange("store")}
-          className="text-[34px] sm:text-[42px] font-semibold transition-colors"
-          style={{ color: activeTab === "store" ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.45)" }}
-        >
-          技能商店
-        </button>
-        <button
-          type="button"
-          onClick={() => onTabChange("mine")}
-          className="text-[34px] sm:text-[42px] font-semibold transition-colors"
-          style={{ color: activeTab === "mine" ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.45)" }}
-        >
-          我的技能
-        </button>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="w-[300px] max-w-[62vw] px-4 py-2.5 rounded-2xl border border-white/[0.12] bg-white/[0.035] flex items-center gap-2">
-          <span className="text-white/35">⌕</span>
-          <input
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="搜索更多技能"
-            className="w-full bg-transparent border-none outline-none text-[14px] text-white/85 placeholder:text-white/32"
-          />
+    <div
+      className="rounded-2xl border px-5 py-4 md:px-6 md:py-5"
+      style={{
+        background: "var(--card-bg)",
+        borderColor: "var(--card-border)",
+        boxShadow: "var(--card-inset), var(--shadow-mid)",
+      }}
+    >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10.5px] tracking-[0.14em] text-skills/90">SKILL MARKET</span>
+            <span className="h-px w-8 bg-skills/35" />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onTabChange("store")}
+              className="px-3 py-1.5 rounded-lg border text-[14px] transition-colors"
+              style={{
+                color: activeTab === "store" ? "var(--text-main)" : "var(--text-muted)",
+                borderColor: activeTab === "store" ? "rgba(245,158,11,0.34)" : "var(--tag-border)",
+                background: activeTab === "store" ? "rgba(245,158,11,0.14)" : "var(--tag-bg)",
+              }}
+            >
+              技能商店
+            </button>
+            <button
+              type="button"
+              onClick={() => onTabChange("mine")}
+              className="px-3 py-1.5 rounded-lg border text-[14px] transition-colors"
+              style={{
+                color: activeTab === "mine" ? "var(--text-main)" : "var(--text-muted)",
+                borderColor: activeTab === "mine" ? "rgba(245,158,11,0.34)" : "var(--tag-border)",
+                background: activeTab === "mine" ? "rgba(245,158,11,0.14)" : "var(--tag-bg)",
+              }}
+            >
+              我的技能
+            </button>
+          </div>
+          <p className="text-[13px] text-white/42 mt-3">
+            复用 Agent 执行引擎，聚焦可复用能力的标准化交付
+          </p>
         </div>
-        <button
-          type="button"
-          onClick={onOpenPurchaseRecords}
-          className="px-4 py-2.5 rounded-2xl border border-white/[0.12] bg-white/[0.035] text-[18px] text-white/85 hover:bg-white/[0.06] transition-colors"
-        >
-          购买记录
-        </button>
-        <button
-          type="button"
-          onClick={onOpenCreate}
-          className="px-4 py-2.5 rounded-2xl border border-skills/45 bg-[linear-gradient(135deg,rgba(245,158,11,0.22),rgba(245,158,11,0.12))] text-[18px] text-skills hover:bg-skills/30 transition-colors inline-flex items-center gap-2"
-        >
-          <span className="text-[20px] leading-none">＋</span>
-          创建技能
-        </button>
+
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <div className="w-full lg:w-[280px] px-3.5 py-2 rounded-xl border border-white/[0.10] bg-white/[0.02] flex items-center gap-2">
+            <span className="text-white/35 text-[13px]">⌕</span>
+            <input
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="搜索技能"
+              className="w-full bg-transparent border-none outline-none text-[13px] text-white/84 placeholder:text-white/30"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onOpenPurchaseRecords}
+            className="px-3.5 py-2 rounded-xl border border-white/[0.1] bg-white/[0.02] text-[13px] text-white/78 hover:bg-white/[0.05] transition-colors"
+          >
+            购买记录
+          </button>
+          <button
+            type="button"
+            onClick={onOpenCreate}
+            className="px-3.5 py-2 rounded-xl border text-[13px] text-skills transition-colors inline-flex items-center gap-1.5"
+            style={{
+              borderColor: "rgba(245,158,11,0.38)",
+              background: "rgba(245,158,11,0.14)",
+            }}
+          >
+            <span className="text-[16px] leading-none">＋</span>
+            创建技能
+          </button>
+        </div>
       </div>
     </div>
   );

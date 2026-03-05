@@ -24,9 +24,12 @@ export function PurchaseRecordsModal({ open, records, loading = false, onClose }
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-[760px] rounded-2xl border border-white/[0.12] bg-[linear-gradient(155deg,rgba(255,255,255,0.06),rgba(255,255,255,0.018))] shadow-[0_22px_58px_rgba(0,0,0,0.45)]">
+      <div
+        className="w-full max-w-[760px] rounded-2xl border shadow-[0_22px_58px_rgba(0,0,0,0.45)]"
+        style={{ background: "var(--panel-bg)", borderColor: "var(--panel-border)" }}
+      >
         <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between">
-          <h3 className="text-[18px] text-white/92">购买记录</h3>
+          <h3 className="text-[16px] font-semibold text-white/90">购买记录</h3>
           <button
             type="button"
             onClick={onClose}
@@ -43,10 +46,10 @@ export function PurchaseRecordsModal({ open, records, loading = false, onClose }
           {records.map((record) => (
             <div
               key={record.record_id}
-              className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3.5"
+              className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-3.5"
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[14px] text-white/85">{record.skill_name}</p>
+                <p className="text-[13px] text-white/85">{record.skill_name}</p>
                 <span className="text-[11px] px-2 py-0.5 rounded border border-white/[0.12] text-white/60">
                   {record.price_type === "free" ? "免费" : `${record.amount} ${record.currency}`}
                 </span>

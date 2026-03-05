@@ -11,7 +11,7 @@ interface SkillGridProps {
 export function SkillGrid({ skills, onOpenSkill }: SkillGridProps) {
   if (skills.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-8 text-center text-white/40 text-[13px]">
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.015] p-8 text-center text-white/40 text-[13px]">
         暂无技能
       </div>
     );
