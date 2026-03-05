@@ -21,7 +21,7 @@ export function SkillCard({ skill, variant = "grid", onOpen }: SkillCardProps) {
       onClick={() => onOpen(skill)}
       className={cn(
         "w-full text-left relative overflow-hidden border transition-all duration-300 group rounded-2xl",
-        isHero ? "p-6 md:p-7 min-h-[220px]" : "p-5 min-h-[188px]",
+        isHero ? "p-5 md:p-6" : "p-5",
         comingSoon
           ? "opacity-90 border-white/[0.08] bg-white/[0.012] cursor-not-allowed"
           : "border-white/[0.10] bg-white/[0.018] hover:border-white/[0.18] hover:bg-white/[0.028] hover:shadow-[0_14px_30px_rgba(0,0,0,0.28)]",
@@ -30,14 +30,12 @@ export function SkillCard({ skill, variant = "grid", onOpen }: SkillCardProps) {
       disabled={comingSoon}
       style={{ boxShadow: "var(--card-inset)" }}
     >
+      {/* Subtle left accent bar */}
       <div
-        className="absolute left-0 top-0 h-1 w-full"
-        style={{ background: `linear-gradient(90deg, ${skill.color}99, transparent)` }}
+        className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full"
+        style={{ background: comingSoon ? "rgba(255,255,255,0.06)" : `${skill.color}60` }}
       />
-      <div
-        className="absolute -right-16 -top-16 w-40 h-40 rounded-full pointer-events-none"
-        style={{ background: `radial-gradient(circle, ${skill.color}20, transparent 70%)` }}
-      />
+
       <div className="absolute top-4 right-4">
         {comingSoon ? (
           <span className="text-[10px] px-2 py-1 rounded-md border border-white/[0.14] text-white/45 bg-white/[0.03]">
@@ -50,26 +48,25 @@ export function SkillCard({ skill, variant = "grid", onOpen }: SkillCardProps) {
         )}
       </div>
 
-      <div className="relative flex items-start gap-4">
+      <div className="relative flex items-start gap-3.5">
         <div
-          className="w-11 h-11 shrink-0 rounded-xl border flex items-center justify-center"
+          className="w-10 h-10 shrink-0 rounded-xl border flex items-center justify-center"
           style={{
-            borderColor: `${skill.color}40`,
-            background: `${skill.color}16`,
+            borderColor: `${skill.color}30`,
+            background: `${skill.color}12`,
             color: skill.color,
           }}
         >
-          <Icon />
+          <Icon size={18} />
         </div>
-        <div className="min-w-0">
-          <p className="text-[10px] tracking-[0.08em] uppercase text-white/40 font-medium mb-1.5">编辑推荐</p>
-          <h3 className={cn("leading-[1.2] font-semibold text-white mb-2", isHero ? "text-[23px]" : "text-[17px]")}>{skill.name}</h3>
-          <p className={cn("leading-relaxed text-white/45 text-[13px]", isHero ? "line-clamp-3 max-w-[520px]" : "line-clamp-2")}>{skill.description}</p>
+        <div className="min-w-0 pt-0.5">
+          <h3 className={cn("leading-[1.2] font-semibold text-white mb-1.5", isHero ? "text-[18px]" : "text-[16px]")}>{skill.name}</h3>
+          <p className={cn("leading-relaxed text-white/42 text-[13px]", isHero ? "line-clamp-2 max-w-[520px]" : "line-clamp-2")}>{skill.description}</p>
         </div>
       </div>
 
-      <div className="relative mt-5 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3.5">
-        <p className="text-[12px] text-white/38">{skill.author}</p>
+      <div className="relative mt-4 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+        <p className="text-[12px] text-white/35">{skill.author}</p>
         {!comingSoon && (
           <span className="text-[11px] text-skills/85 opacity-0 group-hover:opacity-100 transition-opacity">
             进入技能 →
