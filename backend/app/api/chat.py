@@ -8,6 +8,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from app.schemas.chat import (
     CreateSessionRequest,
+    MessageResponse,
     SendMessageRequest,
     SessionResponse,
     SkillInvocationRequest,
@@ -47,6 +48,15 @@ async def delete_session(session_id: str):
     if not deleted:
         raise HTTPException(status_code=404, detail="Session not found")
     return {"status": "ok", "session_id": session_id}
+
+
+@chat_router.get("/sessions/{session_id}/messages", response_model=list[MessageResponse])
+async def get_messages(session_id: str):
+    """Return all messages for a session."""
+    session = chat_service.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return chat_service.get_messages(session_id)
 
 
 @chat_router.post("/sessions/{session_id}/messages")

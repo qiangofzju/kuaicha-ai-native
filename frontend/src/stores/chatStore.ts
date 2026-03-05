@@ -19,6 +19,7 @@ interface ChatState {
   loadSessions: () => Promise<void>;
   createSession: (title?: string) => Promise<ChatSession>;
   setCurrentSession: (id: string) => void;
+  loadMessages: (sessionId: string) => Promise<void>;
   renameSession: (id: string, title: string) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
@@ -95,7 +96,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setCurrentSession: (id: string) => {
-    set({ currentSessionId: id, messages: [] });
+    if (id === get().currentSessionId) return;
+    set({ currentSessionId: id, messages: [], isLoading: false });
+    get().loadMessages(id);
+  },
+
+  loadMessages: async (sessionId: string) => {
+    try {
+      const messages = await chatService.getMessages(sessionId);
+      if (get().currentSessionId === sessionId) {
+        set({
+          messages: messages.map((m) => ({
+            ...m,
+            role: m.role === "assistant" ? "ai" : m.role,
+          } as ChatMessage)),
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load messages:", err);
+    }
   },
 
   renameSession: async (id: string, title: string) => {

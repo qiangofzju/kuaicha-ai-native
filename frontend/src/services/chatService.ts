@@ -1,5 +1,5 @@
 import { apiFetch, apiStreamFetch } from "./api";
-import type { ChatSession } from "@/types/chat";
+import type { ChatMessage, ChatSession } from "@/types/chat";
 
 export const chatService = {
   createSession: (title?: string) =>
@@ -9,6 +9,9 @@ export const chatService = {
     }),
 
   listSessions: () => apiFetch<ChatSession[]>("/api/chat/sessions"),
+
+  getMessages: (sessionId: string) =>
+    apiFetch<ChatMessage[]>(`/api/chat/sessions/${sessionId}/messages`),
 
   renameSession: (sessionId: string, title: string) =>
     apiFetch<ChatSession>(`/api/chat/sessions/${sessionId}`, {
