@@ -289,7 +289,7 @@ export default function AgentExecutionPage() {
           </div>
 
           <aside className="xl:sticky xl:top-4 h-fit space-y-4">
-            <div className="rounded-2xl border border-white/[0.1] bg-[linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_16px_36px_rgba(0,0,0,0.28)]">
+            <div className="rounded-2xl border p-5" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
               <div className="flex items-center gap-2 mb-3">
                 <div
                   className="w-1.5 h-1.5 rounded-full"
@@ -339,7 +339,7 @@ export default function AgentExecutionPage() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-white/[0.1] bg-[linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_16px_36px_rgba(0,0,0,0.28)]">
+            <div className="rounded-2xl border p-5" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
               <h3 className="text-[13px] font-medium text-white/75 mb-3">填写与执行建议</h3>
 
               {topFields.length > 0 ? (

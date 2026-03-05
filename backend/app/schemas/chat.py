@@ -1,6 +1,6 @@
 """Chat-related request/response schemas."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
@@ -21,6 +21,12 @@ class UpdateSessionRequest(BaseModel):
 
 class SendMessageRequest(BaseModel):
     content: str
+
+
+class SkillInvocationRequest(BaseModel):
+    skill_id: str
+    input: dict = Field(default_factory=dict)
+    origin_message_id: Optional[str] = None
 
 
 class RiskDetail(BaseModel):

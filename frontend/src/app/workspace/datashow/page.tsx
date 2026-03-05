@@ -106,10 +106,11 @@ export default function DatashowPage() {
       {overview && (
         <div className="max-w-[1200px] mx-auto">
           <div
-            className="relative overflow-hidden p-6 rounded-[20px] mb-6 border flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_22px_56px_rgba(0,0,0,0.38)]"
+            className="relative overflow-hidden p-6 rounded-[20px] mb-6 border flex items-center justify-between"
             style={{
-              background: `linear-gradient(135deg, ${moduleAccent}18, rgba(255,255,255,0.02))`,
+              background: `linear-gradient(135deg, ${moduleAccent}18, var(--surface-card))`,
               borderColor: `${moduleAccent}38`,
+              boxShadow: "var(--card-inset), var(--shadow-hard)",
             }}
           >
             <div
@@ -124,14 +125,14 @@ export default function DatashowPage() {
               <h2 className="text-[24px] leading-tight font-semibold text-white mb-1.5">数据可视化工作台</h2>
               <p className="text-[13.5px] text-white/42">把复杂企业数据转化为结构化图谱与可执行洞察</p>
             </div>
-            <button className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-[13px] text-white/58 hover:text-white/75 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <button className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[13px] transition-colors" style={{ background: "var(--surface-input)", borderColor: "var(--border-strong-color)", color: "var(--text-sub)", boxShadow: "var(--input-shadow)" }}>
               <span>＋</span>
               新建可视化
             </button>
           </div>
 
           {/* Tab bar */}
-          <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.09] mb-6 overflow-x-auto shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_24px_rgba(0,0,0,0.22)]">
+          <div className="flex gap-1 p-1 rounded-xl mb-6 overflow-x-auto" style={{ background: "var(--tab-bar-bg)", border: "1px solid var(--tab-bar-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
             {TABS.map((tab) => {
               const active = tab.id === activeTab;
               return (
@@ -143,7 +144,7 @@ export default function DatashowPage() {
                   style={{
                     background: active ? `${moduleAccent}18` : "transparent",
                     borderColor: active ? `${moduleAccent}36` : "transparent",
-                    color: active ? moduleAccent : "rgba(255,255,255,0.35)",
+                    color: active ? moduleAccent : "var(--tab-inactive-text)",
                   }}
                 >
                   <span>{tab.emoji}</span>
@@ -161,7 +162,7 @@ export default function DatashowPage() {
 
               {/* NL-generated chart */}
               {nlLoading && (
-                <div className="mb-6 p-5 rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                <div className="mb-6 p-5 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset)" }}>
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 border-2 border-datashow/40 border-t-datashow rounded-full animate-spin" />
                     <span className="text-sm text-white/40">AI 正在生成图表...</span>
@@ -217,8 +218,8 @@ export default function DatashowPage() {
               <div
                 className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
                 style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "var(--surface-card)",
+                  border: "1px solid var(--border-color)",
                 }}
               >
                 <span className="text-xl text-white/15">

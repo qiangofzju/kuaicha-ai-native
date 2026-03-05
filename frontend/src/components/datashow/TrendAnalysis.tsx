@@ -38,19 +38,19 @@ export function TrendAnalysis() {
     return {
       backgroundColor: "transparent",
       textStyle: {
-        color: "rgba(255,255,255,0.5)",
+        color: "var(--chart-axis-color)",
         fontFamily: "var(--font-geist-sans), 'Noto Sans SC', sans-serif",
       },
       tooltip: {
         trigger: "axis" as const,
-        backgroundColor: "rgba(10, 14, 26, 0.95)",
-        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "var(--tooltip-bg)",
+        borderColor: "var(--tooltip-border)",
         borderWidth: 1,
-        textStyle: { color: "rgba(255,255,255,0.85)", fontSize: 12 },
+        textStyle: { color: "var(--tooltip-text)", fontSize: 12 },
       },
       legend: {
         data: trendData.series.map((s) => s.name),
-        textStyle: { color: "rgba(255,255,255,0.5)", fontSize: 11 },
+        textStyle: { color: "var(--chart-axis-color)", fontSize: 11 },
         top: 0,
         right: 0,
       },
@@ -64,17 +64,17 @@ export function TrendAnalysis() {
       xAxis: {
         type: "category" as const,
         data: months,
-        axisLine: { lineStyle: { color: "rgba(255,255,255,0.08)" } },
-        axisLabel: { color: "rgba(255,255,255,0.4)", fontSize: 11 },
+        axisLine: { lineStyle: { color: "var(--chart-axis-line)" } },
+        axisLabel: { color: "var(--chart-axis-color)", fontSize: 11 },
         axisTick: { show: false },
       },
       yAxis: {
         type: "value" as const,
         name: "风险评分",
-        nameTextStyle: { color: "rgba(255,255,255,0.35)", fontSize: 10 },
+        nameTextStyle: { color: "var(--text-weak)", fontSize: 10 },
         axisLine: { show: false },
-        axisLabel: { color: "rgba(255,255,255,0.4)", fontSize: 11 },
-        splitLine: { lineStyle: { color: "rgba(255,255,255,0.04)" } },
+        axisLabel: { color: "var(--chart-axis-color)", fontSize: 11 },
+        splitLine: { lineStyle: { color: "var(--chart-grid-color)" } },
       },
       series: trendData.series.map((s) => ({
         name: s.name,
@@ -99,7 +99,7 @@ export function TrendAnalysis() {
   }, [trendData]);
 
   return (
-    <div className="p-5 rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_14px_42px_rgba(0,0,0,0.28)]">
+    <div className="p-5 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "var(--card-inset), var(--shadow-mid)" }}>
       {/* Header + search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
         <h3 className="text-sm font-medium text-white/70">多企业趋势对比</h3>

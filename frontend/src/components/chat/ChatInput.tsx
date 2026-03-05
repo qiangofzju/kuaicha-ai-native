@@ -47,7 +47,7 @@ export function ChatInput({ onSend, onStop, isLoading }: ChatInputProps) {
     <div
       className="px-6 pb-5 pt-4 border-t border-white/[0.05]"
       style={{
-        background: "linear-gradient(180deg, rgba(6,8,15,0.2), rgba(6,8,15,0.88))",
+        background: "linear-gradient(180deg, var(--chat-fade-start), var(--chat-fade-end))",
       }}
     >
       <div className="max-w-[1240px] mx-auto">

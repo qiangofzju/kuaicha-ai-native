@@ -2,8 +2,11 @@
 
 import type { ChatMessage } from "@/types/chat";
 import { Icons } from "@/components/shared/Icons";
+import { useChatStore } from "@/stores/chatStore";
 import { RiskCard } from "./RiskCard";
 import { ActionButtons } from "./ActionButtons";
+import { SkillInvokeCard } from "./SkillInvokeCard";
+import { SkillRunInlinePanel } from "./SkillRunInlinePanel";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -73,31 +76,29 @@ function renderMarkdown(content: string): string {
     html.push("</ul>");
   }
 
-  return html
-    .join("")
-    .replace(/@@CODE_BLOCK_(\d+)@@/g, (_match, idx: string) => {
-      const code = codeBlocks[Number(idx)] || "";
-      return `<pre><code>${code}</code></pre>`;
-    });
+  return html.join("").replace(/@@CODE_BLOCK_(\d+)@@/g, (_match, idx: string) => {
+    const code = codeBlocks[Number(idx)] || "";
+    return `<pre><code>${code}</code></pre>`;
+  });
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const renderedHtml = !isUser && message.content ? renderMarkdown(message.content) : "";
+  const invokeSkill = useChatStore((s) => s.invokeSkill);
 
   if (isUser) {
     return (
       <div className="flex justify-end mb-4 animate-fadeIn">
         <div
-          className="max-w-[75%] px-[18px] py-3 rounded-2xl rounded-br-[6px] border shadow-[0_10px_24px_rgba(16,22,34,0.24)]"
+          className="max-w-[75%] px-[18px] py-3 rounded-2xl rounded-br-[6px] border"
           style={{
-            background: "linear-gradient(145deg, rgba(127,149,184,0.2), rgba(127,149,184,0.08))",
-            borderColor: "rgba(127,149,184,0.28)",
+            background: "var(--chat-user-bubble-bg)",
+            borderColor: "var(--chat-user-bubble-border)",
+            boxShadow: "var(--chat-user-bubble-shadow)",
           }}
         >
-          <p className="text-[14px] text-white/90 leading-relaxed whitespace-pre-wrap break-words">
-            {message.content}
-          </p>
+          <p className="text-[14px] text-white/90 leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
         </div>
       </div>
     );
@@ -119,7 +120,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(255,255,255,0.028),rgba(255,255,255,0.01))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_24px_rgba(0,0,0,0.2)] px-4 py-3">
+        <div className="rounded-2xl border px-4 py-3" style={{ background: "var(--chat-ai-bubble-bg)", borderColor: "var(--card-border)", boxShadow: "var(--chat-ai-bubble-shadow)" }}>
           <div className="flex items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-2">
               <div className="text-[11px] text-white/45 font-medium">快查 AI</div>
@@ -138,10 +139,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
 
           {message.content && (
-            <div
-              className="chat-markdown text-[14px] text-white/85 leading-[1.72] break-words"
-              dangerouslySetInnerHTML={{ __html: renderedHtml }}
-            />
+            <div className="chat-markdown text-[14px] text-white/85 leading-[1.72] break-words" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
           )}
 
           {message.isStreaming && message.content && (
@@ -153,22 +151,41 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           {message.isStreaming && !message.content && (
             <div className="flex items-center gap-1.5 py-2">
               {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-chat/60 animate-dotPulse"
-                  style={{ animationDelay: `${i * 0.2}s` }}
-                />
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-chat/60 animate-dotPulse" style={{ animationDelay: `${i * 0.2}s` }} />
               ))}
             </div>
           )}
         </div>
 
-        {message.details && message.details.length > 0 && (
-          <RiskCard details={message.details} />
+        {message.details && message.details.length > 0 && <RiskCard details={message.details} />}
+
+        {message.actions && message.actions.length > 0 && !message.isStreaming && <ActionButtons actions={message.actions} />}
+
+        {message.artifacts && message.artifacts.length > 0 && (
+          <div className="space-y-2.5">
+            {message.artifacts.map((artifact, idx) => {
+              if (artifact.type !== "skill_card") return null;
+              const running = (message.skill_runs || []).some(
+                (run) => run.skill_id === artifact.skill_id && (run.status === "pending" || run.status === "running"),
+              );
+              return (
+                <SkillInvokeCard
+                  key={`${artifact.skill_id}-${idx}`}
+                  artifact={artifact}
+                  running={running}
+                  onRun={(input) => invokeSkill(message.id, artifact.skill_id, input)}
+                />
+              );
+            })}
+          </div>
         )}
 
-        {message.actions && message.actions.length > 0 && !message.isStreaming && (
-          <ActionButtons actions={message.actions} />
+        {message.skill_runs && message.skill_runs.length > 0 && (
+          <div className="space-y-2.5">
+            {message.skill_runs.map((run) => (
+              <SkillRunInlinePanel key={run.run_id} run={run} />
+            ))}
+          </div>
         )}
       </div>
     </div>
