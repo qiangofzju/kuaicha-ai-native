@@ -44,7 +44,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { sidebarCollapsed, toggleSidebar, theme: appTheme, toggleTheme } = useAppStore();
-  const { sessions, currentSessionId, loadSessions, setCurrentSession, createSession, renameSession, deleteSession } = useChatStore();
+  const { sessions, currentSessionId, loadSessions, setCurrentSession, clearMessages, renameSession, deleteSession } = useChatStore();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -60,8 +60,9 @@ export function Sidebar() {
     loadSessions();
   }, [loadSessions]);
 
-  const handleNewSession = async () => {
-    await createSession();
+  const handleNewSession = () => {
+    clearMessages();
+    useChatStore.setState({ currentSessionId: null });
     router.push("/workspace/chat");
   };
 
@@ -128,10 +129,15 @@ export function Sidebar() {
         {TABS.map((tab) => {
           const isActive = activeTabId === tab.id;
           const TabIcon = tab.icon;
+          const handleTabClick = tab.id === "chat" ? (e: React.MouseEvent) => {
+            e.preventDefault();
+            handleNewSession();
+          } : undefined;
           return (
             <Link
               key={tab.id}
               href={tab.href}
+              onClick={handleTabClick}
               className={cn(
                 "relative flex items-center gap-2.5 rounded-[10px] cursor-pointer transition-all duration-200",
                 sidebarCollapsed ? "py-2.5 justify-center" : "py-2.5 px-3",
