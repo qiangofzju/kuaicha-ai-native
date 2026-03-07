@@ -83,10 +83,6 @@ function buildDefaultFormValues(manifest: SkillManifest): Record<string, unknown
     defaults[name] = schema.default ?? "";
   }
 
-  if (!defaults.scenario) {
-    defaults.scenario = "filter";
-  }
-
   return defaults;
 }
 
@@ -189,11 +185,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     const { selectedSkill, formValues } = get();
     if (!selectedSkill) return;
 
-    const inputPayload: Record<string, unknown> = {
-      ...formValues,
-      query: String(formValues.query ?? ""),
-      scenario: String(formValues.scenario ?? "filter"),
-    };
+    const inputPayload: Record<string, unknown> = { ...formValues };
 
     set({
       executing: true,

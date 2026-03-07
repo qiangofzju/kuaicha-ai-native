@@ -7,14 +7,13 @@ import type { SkillTraceEvent } from "@/types/skill";
 
 const RECONNECT_DELAY = 2000;
 const MAX_RECONNECT_ATTEMPTS = 5;
-const COMPLETE_FETCH_DELAY_MS = 900;
 
-export function useSkillWebSocket(taskId: string | null, skillId?: string) {
+export function useSkillWebSocket(taskId: string | null) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
-  const completeTimer = useRef<ReturnType<typeof setTimeout>>();
-  const completionPending = useRef(false);
+  const watchdogTimer = useRef<ReturnType<typeof setInterval>>();
+  const lastEventAt = useRef<number>(Date.now());
 
   const updateProgress = useSkillStore((s) => s.updateProgress);
   const appendStreamContent = useSkillStore((s) => s.appendStreamContent);
@@ -23,14 +22,13 @@ export function useSkillWebSocket(taskId: string | null, skillId?: string) {
   const fetchResult = useSkillStore((s) => s.fetchResult);
 
   const cleanup = useCallback(() => {
-    completionPending.current = false;
     if (reconnectTimer.current) {
       clearTimeout(reconnectTimer.current);
       reconnectTimer.current = undefined;
     }
-    if (completeTimer.current) {
-      clearTimeout(completeTimer.current);
-      completeTimer.current = undefined;
+    if (watchdogTimer.current) {
+      clearInterval(watchdogTimer.current);
+      watchdogTimer.current = undefined;
     }
     if (wsRef.current) {
       wsRef.current.onopen = null;
@@ -55,11 +53,22 @@ export function useSkillWebSocket(taskId: string | null, skillId?: string) {
 
       ws.onopen = () => {
         reconnectAttempts.current = 0;
+        lastEventAt.current = Date.now();
+        watchdogTimer.current = setInterval(() => {
+          if (Date.now() - lastEventAt.current > 10_000) {
+            setTaskStatus("failed");
+            cleanup();
+          }
+        }, 1500);
       };
 
       ws.onmessage = (event) => {
+        lastEventAt.current = Date.now();
         try {
           const msg = JSON.parse(event.data);
+          if (msg.type === "skill_heartbeat") {
+            return;
+          }
           if (msg.type === "skill_progress") {
             const data = msg.data;
             updateProgress({
@@ -87,20 +96,14 @@ export function useSkillWebSocket(taskId: string | null, skillId?: string) {
               } as SkillTraceEvent);
             }
           } else if (msg.type === "skill_complete") {
-            const shouldDelayFetch = skillId === "batch";
-            if (shouldDelayFetch) {
-              completionPending.current = true;
-              completeTimer.current = setTimeout(() => {
-                setTaskStatus("completed");
-                fetchResult(id);
-                completionPending.current = false;
-                cleanup();
-              }, COMPLETE_FETCH_DELAY_MS);
+            const status = msg.data?.status;
+            if (status === "cancelled") {
+              setTaskStatus("cancelled");
             } else {
               setTaskStatus("completed");
               fetchResult(id);
-              cleanup();
             }
+            cleanup();
           } else if (msg.type === "skill_error") {
             setTaskStatus("failed");
             cleanup();
@@ -120,7 +123,6 @@ export function useSkillWebSocket(taskId: string | null, skillId?: string) {
 
         if (
           currentTaskId === id &&
-          !completionPending.current &&
           currentStatus === "running" &&
           reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS
         ) {
@@ -129,7 +131,7 @@ export function useSkillWebSocket(taskId: string | null, skillId?: string) {
         }
       };
     },
-    [cleanup, updateProgress, appendStreamContent, appendTraceEvent, setTaskStatus, fetchResult, skillId],
+    [cleanup, updateProgress, appendStreamContent, appendTraceEvent, setTaskStatus, fetchResult],
   );
 
   useEffect(() => {
