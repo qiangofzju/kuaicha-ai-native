@@ -38,6 +38,13 @@ class SkillServiceTest(unittest.TestCase):
 
         asyncio.run(_run())
 
+    def test_user_generated_manifest_is_normalized_to_builder_source(self):
+        manifest = skill_service.get_manifest("skill-06d107")
+        self.assertIsNotNone(manifest)
+        assert manifest is not None
+        self.assertEqual(manifest.get("source"), "builder")
+        self.assertEqual(manifest.get("source_raw"), "user_generated")
+
 
 if __name__ == "__main__":
     unittest.main()

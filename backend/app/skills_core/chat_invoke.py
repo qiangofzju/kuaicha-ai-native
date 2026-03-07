@@ -39,6 +39,13 @@ class SkillMentionParser:
     def reload(self) -> None:
         index: dict[str, str] = {}
         for manifest in manifest_registry.list_manifests():
+            if manifest.status != "ready":
+                continue
+            if not manifest.entrypoints.chat_invoke:
+                continue
+            raw = manifest.model_dump()
+            if bool(raw.get("internal")):
+                continue
             index[_normalize(manifest.id)] = manifest.id
             index[_normalize(manifest.name)] = manifest.id
             index[_normalize(manifest.display_name)] = manifest.id

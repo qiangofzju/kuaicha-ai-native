@@ -46,6 +46,7 @@ class SkillUiConfig(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     theme_accent: str = "#F59E0B"
+    stages: list[str] = Field(default_factory=list)
     chat_card: dict[str, Any] = Field(default_factory=dict)
     standalone: dict[str, Any] = Field(default_factory=dict)
 
