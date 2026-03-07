@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { SkillConfig } from "@/components/skills/SkillConfig";
 import { SkillExecutionCanvas } from "@/components/skills/runtime/SkillExecutionCanvas";
+import { SkillRunChatPage } from "@/components/skills/runtime/SkillRunChatPage";
 import { SkillResultPanel } from "@/components/skills/runtime/SkillResultPanel";
 import { useSkillStore } from "@/stores/skillStore";
 import { useSkillWebSocket } from "@/hooks/useSkillWebSocket";
@@ -38,8 +39,6 @@ export default function SkillExecutionPage() {
   const skillFromTheme = theme.skills.find((s) => s.id === skillId) as unknown as SkillDefinition | undefined;
   const skill = selectedSkill || skills.find((s) => s.id === skillId) || skillFromTheme || null;
 
-  useSkillWebSocket(taskStatus === "running" ? currentTaskId : null, skillId);
-
   useEffect(() => {
     loadSkills();
   }, [loadSkills]);
@@ -60,6 +59,17 @@ export default function SkillExecutionPage() {
     }
   }, [taskStatus]);
 
+  const generatedSkill = manifest?.execution?.agent_id === "generated-skill-runtime";
+  const isBuilderSkill = Boolean(
+    manifest
+      && (
+        manifest.source === "builder"
+        || manifest.source === "user_generated"
+        || (manifest.author === "@SkillCreator" && generatedSkill)
+      ),
+  );
+  useSkillWebSocket(manifest && !isBuilderSkill && taskStatus === "running" ? currentTaskId : null);
+
   if (!skill) {
     return (
       <div className="h-full flex items-center justify-center text-white/40">
@@ -71,6 +81,7 @@ export default function SkillExecutionPage() {
   const SkillIcon = getAgentIcon(skill.icon);
   const accent = manifest?.ui?.theme_accent || skill.color || theme.colors.modules.skills;
   const ready = skill.market_status === "ready";
+  const allowExport = !generatedSkill && (manifest?.ui?.standalone?.show_export ?? true);
   const resultReady = taskStatus === "completed" && !!result && !showResult;
   const phase = showResult && result ? "result" : taskStatus === "running" || taskStatus === "completed" ? "progress" : "config";
   const phaseHint = phase === "config"
@@ -79,7 +90,11 @@ export default function SkillExecutionPage() {
       ? resultReady
         ? "执行完成，轨迹已保留，可先复盘再查看结果"
         : traceEvents[traceEvents.length - 1]?.detail || progress?.message || "正在持续输出分析过程"
-      : "结果已生成，可导出交付";
+      : allowExport ? "结果已生成，可导出交付" : "结果已生成，可继续复用该技能";
+
+  if (manifest && isBuilderSkill) {
+    return <SkillRunChatPage skillId={skillId} skill={skill} manifest={manifest} />;
+  }
 
   return (
     <div className="h-full overflow-y-auto px-6 pb-8 pt-5 animate-fadeIn">
@@ -126,7 +141,7 @@ export default function SkillExecutionPage() {
         {!ready && (
           <div className="rounded-2xl border border-white/[0.1] bg-white/[0.02] p-8 text-center">
             <h3 className="text-[20px] text-white/82 mb-2">该技能即将上线</h3>
-            <p className="text-[13px] text-white/40 mb-4">当前版本仅开放批量数据处理技能执行</p>
+            <p className="text-[13px] text-white/40 mb-4">该技能尚未开放，请关注后续版本更新</p>
             <button
               type="button"
               onClick={() => router.push("/workspace/skills")}
@@ -164,6 +179,7 @@ export default function SkillExecutionPage() {
                 <SkillExecutionCanvas
                   progress={progress}
                   traceEvents={traceEvents}
+                  stages={manifest?.ui?.stages}
                   onStop={taskStatus === "running" ? cancelExecution : undefined}
                   resultReady={resultReady}
                   onViewResult={() => setShowResult(true)}
@@ -178,6 +194,7 @@ export default function SkillExecutionPage() {
                   onBack={() => router.push("/workspace/skills")}
                   onReset={resetExecution}
                   onExport={skillService.exportRunResult}
+                  allowExport={allowExport}
                 />
               )}
             </div>

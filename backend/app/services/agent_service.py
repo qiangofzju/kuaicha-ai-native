@@ -49,7 +49,7 @@ class AgentService:
     # ------------------------------------------------------------------
 
     async def execute_agent(
-        self, agent_id: str, target: str, params: dict
+        self, agent_id: str, target: str, params: dict, task_id: str | None = None
     ) -> Optional[str]:
         """Start agent execution and return the task ID.
 
@@ -60,15 +60,15 @@ class AgentService:
             logger.warning("Agent not found: %s", agent_id)
             return None
 
-        task_id = str(uuid.uuid4())
+        final_task_id = task_id or str(uuid.uuid4())
         agent_input = AgentInput(target=target, params=params)
 
-        await executor.execute(agent, agent_input, task_id=task_id)
+        await executor.execute(agent, agent_input, task_id=final_task_id)
         logger.info(
             "Started execution: agent=%s, target=%s, task=%s",
-            agent_id, target, task_id,
+            agent_id, target, final_task_id,
         )
-        return task_id
+        return final_task_id
 
     # ------------------------------------------------------------------
     # Task queries

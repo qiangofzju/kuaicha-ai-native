@@ -44,7 +44,7 @@ export interface ChatSkillRun {
 
 export interface ChatMessage {
   id: string;
-  role: "user" | "ai";
+  role: "user" | "ai" | "assistant";
   content: string;
   details?: RiskDetail[];
   actions?: string[];

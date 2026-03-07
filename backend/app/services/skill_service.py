@@ -6,6 +6,7 @@ import csv
 import io
 import re
 import uuid
+from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import HTTPException
@@ -13,8 +14,10 @@ from fastapi import HTTPException
 from app.agents.executor import executor
 from app.schemas.agent import TaskStatus
 from app.services.agent_service import agent_service
+from app.skills_core.chat_invoke import skill_mention_parser
 from app.skills_core.manifest_loader import manifest_registry
 from app.skills_core.runtime import skills_runtime
+from app.skills_core.manifest_schema import SkillManifest
 from app.utils.mock_skills import (
     get_mock_my_skills,
     get_mock_purchase_records,
@@ -32,15 +35,22 @@ class SkillService:
 
     def __init__(self):
         self._agent_to_skill: dict[str, str] = {}
+        self._run_to_skill: dict[str, str] = {}
         self._refresh_mappings()
 
     def _refresh_mappings(self) -> None:
         mapping: dict[str, str] = {}
         for manifest in manifest_registry.list_manifests():
             agent_id = manifest.execution.agent_id
-            if agent_id:
+            if agent_id and agent_id not in mapping:
                 mapping[agent_id] = manifest.id
         self._agent_to_skill = mapping
+
+    def refresh_catalog(self) -> None:
+        """Reload manifests and chat mention index after file changes."""
+        manifest_registry.reload()
+        skill_mention_parser.reload()
+        self._refresh_mappings()
 
     def _merge_market_item_with_manifest(self, item: dict[str, Any]) -> dict[str, Any]:
         manifest = manifest_registry.get_manifest(str(item.get("id", "")))
@@ -76,8 +86,115 @@ class SkillService:
         normalized.pop("agent_type", None)
         return normalized
 
+    @staticmethod
+    def _manifest_extra(manifest: SkillManifest) -> dict[str, Any]:
+        dumped = manifest.model_dump()
+        known = {
+            "id",
+            "version",
+            "name",
+            "display_name",
+            "description",
+            "category",
+            "status",
+            "author",
+            "tags",
+            "entrypoints",
+            "triggers",
+            "execution",
+            "input_schema",
+            "output_schema",
+            "permissions",
+            "ui",
+        }
+        return {k: v for k, v in dumped.items() if k not in known}
+
+    @staticmethod
+    def _normalized_source(manifest: SkillManifest) -> tuple[str, str]:
+        extra = SkillService._manifest_extra(manifest)
+        raw_source = str(extra.get("source", "")).strip()
+        if raw_source in {"user_generated", "builder"} or manifest.author == "@SkillCreator":
+            return "builder", raw_source or "builder"
+        return raw_source, raw_source
+
+    def _manifest_payload(self, manifest: SkillManifest) -> dict[str, Any]:
+        payload = manifest.model_dump()
+        source, raw_source = self._normalized_source(manifest)
+        if source:
+            payload["source"] = source
+        if raw_source:
+            payload["source_raw"] = raw_source
+        return payload
+
+    def _is_internal_manifest(self, manifest: SkillManifest) -> bool:
+        extra = self._manifest_extra(manifest)
+        return bool(extra.get("internal"))
+
+    def _build_dynamic_skill_item(self, manifest: SkillManifest, manifest_path: Path) -> dict[str, Any]:
+        extra = self._manifest_extra(manifest)
+        accent = manifest.ui.theme_accent if manifest.ui and manifest.ui.theme_accent else "#22C55E"
+        source, raw_source = self._normalized_source(manifest)
+        owner = "@SkillCreator" if source == "builder" else (manifest.author or "@技能团队")
+
+        return {
+            "id": manifest.id,
+            "name": manifest.display_name,
+            "description": manifest.description,
+            "color": accent,
+            "tags": manifest.tags or ["用户创建"],
+            "icon": str(extra.get("icon") or "Sparkle"),
+            "status": manifest.status,
+            "author": owner,
+            "price_type": "free",
+            "owned": True,
+            "cover": str(extra.get("cover") or manifest_path.parent.name),
+            "market_status": "ready" if manifest.status == "ready" else "coming",
+            "source": source,
+            "source_raw": raw_source,
+        }
+
+    def _list_dynamic_skills(self) -> list[dict[str, Any]]:
+        mock_ids = {item.get("id") for item in get_mock_skill_list()}
+        dynamic: list[dict[str, Any]] = []
+
+        for manifest, path in manifest_registry.list_manifest_items():
+            if manifest.id in mock_ids:
+                continue
+            if self._is_internal_manifest(manifest):
+                continue
+            dynamic.append(self._build_dynamic_skill_item(manifest, path))
+
+        dynamic.sort(key=lambda item: str(item.get("name", "")))
+        return dynamic
+
+    def _merge_unique_items(self, base: list[dict[str, Any]], extra: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        merged = list(base)
+        exists = {str(item.get("id", "")) for item in merged}
+        for item in extra:
+            item_id = str(item.get("id", ""))
+            if item_id and item_id not in exists:
+                merged.append(item)
+                exists.add(item_id)
+        return merged
+
+    def _resolve_skill_id(
+        self,
+        run_id: str,
+        agent_id: str,
+        result: dict[str, Any] | None = None,
+    ) -> str:
+        if run_id in self._run_to_skill:
+            return self._run_to_skill[run_id]
+
+        metadata = result.get("metadata", {}) if isinstance(result, dict) else {}
+        if isinstance(metadata, dict) and metadata.get("skill_id"):
+            return str(metadata["skill_id"])
+
+        return self._agent_to_skill.get(agent_id, agent_id)
+
     def list_skills(self) -> list[dict]:
-        return [self._merge_market_item_with_manifest(item) for item in get_mock_skill_list()]
+        base = [self._merge_market_item_with_manifest(item) for item in get_mock_skill_list()]
+        return self._merge_unique_items(base, self._list_dynamic_skills())
 
     def get_store(self) -> dict:
         store = get_mock_skill_store()
@@ -85,10 +202,24 @@ class SkillService:
         for section in store.get("sections", []):
             items = [self._merge_market_item_with_manifest(item) for item in section.get("items", [])]
             sections.append({**section, "items": items})
+
+        dynamic = self._list_dynamic_skills()
+        if dynamic:
+            sections.append(
+                {
+                    "id": "user-generated",
+                    "title": "我创建的技能",
+                    "subtitle": "自动生成并可立即复用",
+                    "style": "grid",
+                    "items": dynamic,
+                }
+            )
+
         return {"sections": sections}
 
     def get_my_skills(self) -> list[dict]:
-        return [self._merge_market_item_with_manifest(item) for item in get_mock_my_skills()]
+        base = [self._merge_market_item_with_manifest(item) for item in get_mock_my_skills()]
+        return self._merge_unique_items(base, self._list_dynamic_skills())
 
     def get_purchase_records(self) -> list[dict]:
         return get_mock_purchase_records()
@@ -104,6 +235,8 @@ class SkillService:
     def get_catalog(self) -> list[dict[str, Any]]:
         catalog: list[dict[str, Any]] = []
         for manifest in manifest_registry.list_manifests():
+            if self._is_internal_manifest(manifest):
+                continue
             catalog.append(
                 {
                     "id": manifest.id,
@@ -121,12 +254,19 @@ class SkillService:
         return catalog
 
     def get_manifest(self, skill_id: str) -> Optional[dict[str, Any]]:
-        return manifest_registry.get_manifest_dict(skill_id)
+        manifest = manifest_registry.get_manifest(skill_id)
+        if manifest is None:
+            return None
+        if self._is_internal_manifest(manifest):
+            return None
+        return self._manifest_payload(manifest)
 
     def get_skill_config(self, skill_id: str) -> Optional[dict]:
         """Compatibility schema endpoint; prefer workflow schema if available."""
         manifest = manifest_registry.get_manifest(skill_id)
         if manifest is None:
+            return None
+        if self._is_internal_manifest(manifest):
             return None
 
         agent_id = manifest.execution.agent_id
@@ -170,14 +310,23 @@ class SkillService:
         input_payload: dict[str, Any],
         context: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
+        run_id = str(uuid.uuid4())
         try:
-            run_id = await skills_runtime.invoke_async(skill_id=skill_id, input_payload=input_payload, context=context)
+            task_id = await skills_runtime.invoke_async(
+                skill_id=skill_id,
+                input_payload=input_payload,
+                context=context,
+                run_id=run_id,
+            )
         except HTTPException:
             raise
 
+        final_run_id = str(task_id or run_id)
+        self._run_to_skill[final_run_id] = skill_id
+
         return {
-            "run_id": run_id,
-            "task_id": run_id,
+            "run_id": final_run_id,
+            "task_id": final_run_id,
             "skill_id": skill_id,
             "status": TaskStatus.PENDING,
         }
@@ -185,6 +334,9 @@ class SkillService:
     async def execute_skill(self, skill_id: str, target: str, params: dict) -> Optional[str]:
         manifest = manifest_registry.get_manifest(skill_id)
         if manifest is None:
+            for item in get_mock_skill_list():
+                if str(item.get("id")) == skill_id:
+                    raise SkillComingSoonError(f"Skill `{skill_id}` is not executable")
             return None
         if manifest.status != "ready":
             raise SkillComingSoonError(f"Skill `{skill_id}` is not executable")
@@ -207,7 +359,18 @@ class SkillService:
         if task is None:
             return None
         status = task.to_status_dict()
-        skill_id = self._agent_to_skill.get(task.agent_id, task.agent_id)
+
+        result_payload: dict[str, Any] | None = None
+        if task.result is not None:
+            result_payload = {
+                "metadata": task.result.metadata,
+            }
+
+        skill_id = self._resolve_skill_id(
+            run_id=run_id,
+            agent_id=task.agent_id,
+            result=result_payload,
+        )
         return self._status_from_record(status, skill_id=skill_id)
 
     def get_task_status(self, task_id: str) -> Optional[dict]:
@@ -217,7 +380,8 @@ class SkillService:
         result = agent_service.get_task_result(run_id)
         if result is None:
             return None
-        skill_id = self._agent_to_skill.get(str(result.get("agent_type", "")), str(result.get("agent_type", "")))
+        agent_id = str(result.get("agent_type", ""))
+        skill_id = self._resolve_skill_id(run_id=run_id, agent_id=agent_id, result=result)
         return self._result_from_agent_result(result, skill_id=skill_id)
 
     def get_task_result(self, task_id: str) -> Optional[dict]:

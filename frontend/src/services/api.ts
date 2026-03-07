@@ -16,7 +16,14 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     ...options,
   });
   if (!res.ok) {
-    const detail = await res.text().catch(() => "Unknown error");
+    const raw = await res.text().catch(() => "Unknown error");
+    let detail = raw;
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.detail === "string") detail = parsed.detail;
+    } catch {
+      // not JSON, use raw text
+    }
     throw new ApiError(res.status, detail);
   }
   return res.json();
