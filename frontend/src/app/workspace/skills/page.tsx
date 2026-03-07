@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import { SkillMarketHeader } from "@/components/skills/SkillMarketHeader";
 import { SkillGrid } from "@/components/skills/SkillGrid";
 import { SkillSection } from "@/components/skills/SkillSection";
-import { CreateSkillModal } from "@/components/skills/CreateSkillModal";
 import { PurchaseRecordsModal } from "@/components/skills/PurchaseRecordsModal";
-import { skillService } from "@/services/skillService";
 import { useSkillStore } from "@/stores/skillStore";
 import { theme } from "@/styles/theme";
 import type { SkillDefinition, SkillStoreSection } from "@/types/skill";
@@ -17,9 +15,7 @@ export default function SkillsPage() {
   const [activeTab, setActiveTab] = useState<"store" | "mine">("store");
   const [search, setSearch] = useState("");
   const [openPurchase, setOpenPurchase] = useState(false);
-  const [openCreate, setOpenCreate] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
-  const [createSubmitting, setCreateSubmitting] = useState(false);
 
   const storeSections = useSkillStore((s) => s.storeSections);
   const mySkills = useSkillStore((s) => s.mySkills);
@@ -111,7 +107,7 @@ export default function SkillsPage() {
           search={search}
           onSearchChange={setSearch}
           onOpenPurchaseRecords={() => setOpenPurchase(true)}
-          onOpenCreate={() => setOpenCreate(true)}
+          onOpenCreate={() => router.push("/workspace/skills/create")}
         />
 
         {hint && (
@@ -165,23 +161,6 @@ export default function SkillsPage() {
         records={purchaseRecords}
         loading={loadingPurchaseRecords}
         onClose={() => setOpenPurchase(false)}
-      />
-
-      <CreateSkillModal
-        open={openCreate}
-        submitting={createSubmitting}
-        onClose={() => setOpenCreate(false)}
-        onSubmit={async (payload) => {
-          setCreateSubmitting(true);
-          try {
-            const resp = await skillService.createSkill(payload);
-            setHint(resp.message || "提交成功");
-            setOpenCreate(false);
-            setTimeout(() => setHint(null), 2600);
-          } finally {
-            setCreateSubmitting(false);
-          }
-        }}
       />
     </div>
   );

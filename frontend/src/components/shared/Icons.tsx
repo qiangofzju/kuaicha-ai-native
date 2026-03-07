@@ -258,6 +258,32 @@ export const Icons = {
       <path d="M5.8 6a2.2 2.2 0 0 1 4.4.7c0 1.5-2.2 2-2.2 3M8 12.5v.5" />
     </svg>
   ),
+  ThinkingBrain: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12.5c-1.2-.8-2-2.3-2-4a5 5 0 0 1 10 0c0 1.7-.8 3.2-2 4" />
+      <path d="M6 12.5v1a2 2 0 0 0 4 0v-1" />
+      <path d="M8 2v1.5M8 7v2M6 8h4" />
+    </svg>
+  ),
+  Terminal: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
+      <path d="M4.5 6l2.5 2-2.5 2M8.5 10h3" />
+    </svg>
+  ),
+  FileCreate: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 1.5H4.5a1.5 1.5 0 0 0-1.5 1.5v10a1.5 1.5 0 0 0 1.5 1.5h7a1.5 1.5 0 0 0 1.5-1.5V5.5L9 1.5Z" />
+      <path d="M9 1.5V5.5h4" />
+      <path d="M8 8.5v4M6 10.5h4" />
+    </svg>
+  ),
+  CheckDelivery: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="12" height="12" rx="2.5" />
+      <path d="M5.5 8l2 2 3.5-4" />
+    </svg>
+  ),
 };
 
 // Helper to get an agent icon component by name
