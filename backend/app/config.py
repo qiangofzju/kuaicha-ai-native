@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     SKILL_API_KEY_ENABLED: bool = False
     SKILL_API_KEYS: str = ""
 
+    # Workspace root directory (empty = default: project_root/data/workspaces)
+    WORKSPACE_ROOT: str = ""
+
     class Config:
         env_file = (
             os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env.local"),

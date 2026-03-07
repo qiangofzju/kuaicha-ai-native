@@ -17,7 +17,12 @@ from app.utils.logger import logger
 async def lifespan(app: FastAPI):
     """Application lifespan – runs startup and shutdown logic."""
     logger.info("Starting %s ...", settings.APP_NAME)
-    logger.info("Driver: %s | Mock data: %s", settings.AGENT_DRIVER, settings.USE_MOCK_DATA)
+    logger.info(
+        "Driver: %s | Model: %s | Mock data: %s",
+        settings.AGENT_DRIVER,
+        settings.CLAUDE_MODEL,
+        settings.USE_MOCK_DATA,
+    )
 
     # Initialize SQLite database for batch data processing
     initialize_database()
@@ -70,5 +75,6 @@ async def health():
         "app": settings.APP_NAME,
         "version": "0.1.0",
         "driver": settings.AGENT_DRIVER,
+        "model": settings.CLAUDE_MODEL,
         "mock_data": settings.USE_MOCK_DATA,
     }

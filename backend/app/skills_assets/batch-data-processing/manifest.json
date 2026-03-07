@@ -96,6 +96,7 @@
   ],
   "ui": {
     "theme_accent": "#F59E0B",
+    "stages": ["需求解析", "数据查询", "字段加工", "数据交付"],
     "chat_card": {
       "show_fields": [
         "scenario",

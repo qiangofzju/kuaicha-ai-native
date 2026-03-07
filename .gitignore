@@ -47,3 +47,6 @@ Thumbs.db
 
 # Skills (ignore only repository root skills directory)
 /skills/
+
+# Workspace data
+data/workspaces/

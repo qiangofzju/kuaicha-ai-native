@@ -9,14 +9,16 @@ interface SkillResultPanelProps {
   onBack: () => void;
   onReset: () => void;
   onExport: (taskId: string, format: "excel" | "pdf") => Promise<{ fallback?: string | null; filename: string }>;
+  allowExport?: boolean;
 }
 
-export function SkillResultPanel({ skill, result, onBack, onReset, onExport }: SkillResultPanelProps) {
+export function SkillResultPanel({ skill, result, onBack, onReset, onExport, allowExport = true }: SkillResultPanelProps) {
   const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
   const [exportHint, setExportHint] = useState<string>("");
 
   const columns = useMemo(() => result.columns || [], [result.columns]);
   const rows = useMemo(() => result.preview_rows || [], [result.preview_rows]);
+  const generatedMode = result.query_type === "generated" || result.result_mode === "inline_delivery";
 
   const taskId = result.task_id || result.run_id;
 
@@ -49,15 +51,17 @@ export function SkillResultPanel({ skill, result, onBack, onReset, onExport }: S
             <p className="text-[13px] text-white/58 mt-2 leading-relaxed max-w-[860px]">{result.summary}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleExport("excel")}
-              disabled={!taskId || exporting !== null}
-              className="px-3.5 py-2 rounded-lg text-[12px] border transition-colors disabled:opacity-50"
-              style={{ borderColor: `${skill.color}55`, color: skill.color, background: `${skill.color}14` }}
-            >
-              {exporting === "excel" ? "导出中..." : "下载 Excel"}
-            </button>
+            {allowExport && !generatedMode && (
+              <button
+                type="button"
+                onClick={() => handleExport("excel")}
+                disabled={!taskId || exporting !== null}
+                className="px-3.5 py-2 rounded-lg text-[12px] border transition-colors disabled:opacity-50"
+                style={{ borderColor: `${skill.color}55`, color: skill.color, background: `${skill.color}14` }}
+              >
+                {exporting === "excel" ? "导出中..." : "下载 Excel"}
+              </button>
+            )}
             <button
               type="button"
               onClick={onReset}
@@ -77,9 +81,18 @@ export function SkillResultPanel({ skill, result, onBack, onReset, onExport }: S
         {exportHint && <p className="text-[12px] text-amber-300/80 mt-3">{exportHint}</p>}
       </div>
 
+      {generatedMode && (
+        <div className="rounded-2xl border border-white/[0.1] bg-white/[0.02] p-5">
+          <h4 className="text-[13px] text-white/75 mb-2">技能交付说明</h4>
+          <p className="text-[13px] text-white/60 leading-relaxed">
+            {result.delivery_notes || `当前技能已完成执行，共返回 ${rows.length} 条结构化内容。你可以继续提交更细化的请求。`}
+          </p>
+        </div>
+      )}
+
       <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
         <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between gap-3">
-          <h4 className="text-[12px] text-white/70">预览数据</h4>
+          <h4 className="text-[12px] text-white/70">{generatedMode ? "结构化结果" : "预览数据"}</h4>
           <span className="text-[11px] text-white/40">总计 {result.total_count ?? rows.length} 条</span>
         </div>
         <div className="overflow-x-auto">

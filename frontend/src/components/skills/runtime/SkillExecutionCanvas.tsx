@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { SkillProgress, SkillTraceEvent } from "@/types/skill";
 
-const STAGES = ["需求解析", "数据查询", "字段加工", "数据交付"];
+const DEFAULT_STAGES = ["初始化", "执行中", "完成"];
 
 interface SkillExecutionCanvasProps {
   progress: SkillProgress | null;
   traceEvents: SkillTraceEvent[];
   accentColor: string;
+  stages?: string[];
   onStop?: () => void;
   resultReady?: boolean;
   onViewResult?: () => void;
@@ -20,19 +21,17 @@ function fmtTime(ts: string): string {
   return d.toLocaleTimeString("zh-CN", { hour12: false });
 }
 
-function getActiveStageIndex(progress: SkillProgress | null, traceEvents: SkillTraceEvent[]): number {
+function getActiveStageIndex(progress: SkillProgress | null, traceEvents: SkillTraceEvent[], maxIndex: number): number {
   const latest = traceEvents[traceEvents.length - 1];
   if (latest && Number.isFinite(latest.stage_index)) {
-    return Math.max(0, Math.min(3, latest.stage_index));
+    return Math.max(0, Math.min(maxIndex, latest.stage_index));
   }
   if (progress?.stageIndex !== undefined) {
-    return Math.max(0, Math.min(3, progress.stageIndex));
+    return Math.max(0, Math.min(maxIndex, progress.stageIndex));
   }
   const pct = progress?.progress ?? 0;
-  if (pct < 25) return 0;
-  if (pct < 50) return 1;
-  if (pct < 75) return 2;
-  return 3;
+  const step = 100 / (maxIndex + 1);
+  return Math.min(maxIndex, Math.floor(pct / step));
 }
 
 function statusColor(status: SkillTraceEvent["status"] | "running"): string {
@@ -49,6 +48,16 @@ function kindLabel(kind: SkillTraceEvent["kind"]): string {
   if (kind === "query") return "查询";
   if (kind === "transform") return "加工";
   if (kind === "delivery") return "交付";
+  if (kind === "thinking") return "思考";
+  if (kind === "tool_call") return "工具调用";
+  if (kind === "tool_result") return "工具结果";
+  if (kind === "file_write") return "文件创建";
+  if (kind === "plan") return "计划";
+  if (kind === "tool_start") return "工具开始";
+  if (kind === "tool_stdout") return "标准输出";
+  if (kind === "tool_stderr") return "错误输出";
+  if (kind === "tool_end") return "工具结束";
+  if (kind === "fs_change") return "文件变更";
   if (kind === "warn") return "警告";
   if (kind === "error") return "异常";
   return "信息";
@@ -58,14 +67,16 @@ export function SkillExecutionCanvas({
   progress,
   traceEvents,
   accentColor,
+  stages: stagesProp,
   onStop,
   resultReady,
   onViewResult,
 }: SkillExecutionCanvasProps) {
+  const stages = stagesProp?.length ? stagesProp : DEFAULT_STAGES;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const pct = Math.max(0, Math.min(100, Math.round(progress?.progress ?? 0)));
-  const activeStageIndex = getActiveStageIndex(progress, traceEvents);
+  const activeStageIndex = getActiveStageIndex(progress, traceEvents, stages.length - 1);
 
   const reduceMotion = useMemo(() => {
     if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -89,6 +100,7 @@ export function SkillExecutionCanvas({
     let w = 0;
     let h = 0;
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+    const stageCount = stages.length;
 
     const particles = Array.from({ length: 16 }, (_item, idx) => ({
       offset: idx / 16,
@@ -110,7 +122,7 @@ export function SkillExecutionCanvas({
       const y = h * 0.52;
       const left = 48;
       const right = w - 48;
-      const segment = (right - left) / (STAGES.length - 1);
+      const segment = stageCount > 1 ? (right - left) / (stageCount - 1) : right - left;
       const progressX = left + ((right - left) * pct) / 100;
 
       const bg = ctx.createLinearGradient(0, 0, w, h);
@@ -135,7 +147,7 @@ export function SkillExecutionCanvas({
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      STAGES.forEach((_stage, idx) => {
+      for (let idx = 0; idx < stageCount; idx++) {
         const x = left + segment * idx;
         const isDone = idx < activeStageIndex;
         const isActive = idx === activeStageIndex;
@@ -150,7 +162,7 @@ export function SkillExecutionCanvas({
         ctx.strokeStyle = isActive ? `${accentColor}88` : "rgba(255,255,255,0.12)";
         ctx.lineWidth = 1.5;
         ctx.stroke();
-      });
+      }
 
       if (!reduceMotion) {
         particles.forEach((particle) => {
@@ -173,9 +185,10 @@ export function SkillExecutionCanvas({
       if (raf) window.cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
-  }, [accentColor, pct, activeStageIndex, reduceMotion]);
+  }, [accentColor, pct, activeStageIndex, reduceMotion, stages.length]);
 
   const latestStatus = traceEvents[traceEvents.length - 1]?.status ?? (resultReady ? "done" : "running");
+  const gridCols = stages.length <= 3 ? `grid-cols-${stages.length}` : stages.length === 4 ? "grid-cols-2 md:grid-cols-4" : `grid-cols-2 md:grid-cols-${Math.min(stages.length, 6)}`;
 
   return (
     <div className="space-y-4 animate-fadeIn">
@@ -225,8 +238,8 @@ export function SkillExecutionCanvas({
           <canvas ref={canvasRef} className="w-full h-[180px] block" />
         </div>
 
-        <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
-          {STAGES.map((stage, idx) => {
+        <div className={`mt-3 grid gap-2 ${gridCols}`}>
+          {stages.map((stage, idx) => {
             const active = idx === activeStageIndex;
             const done = idx < activeStageIndex;
             return (
@@ -268,7 +281,21 @@ export function SkillExecutionCanvas({
               <p className="text-[11px] text-white/45 mt-1">
                 {event.stage} · {kindLabel(event.kind)}
               </p>
-              {event.detail && <p className="text-[12px] text-white/62 mt-1.5 leading-relaxed break-all">{event.detail}</p>}
+              {event.detail && (event.kind === "tool_call" || event.kind === "tool_start") && (
+                <div className="mt-1.5 rounded-md border border-white/[0.08] bg-black/30 px-2.5 py-2">
+                  <code className="text-[11px] text-white/68 break-all">{event.detail}</code>
+                </div>
+              )}
+              {event.detail && (event.kind === "tool_stdout" || event.kind === "tool_stderr") && (
+                <div className="mt-1.5 rounded-md border border-white/[0.08] bg-black/30 px-2.5 py-2">
+                  <code className="text-[11px] break-all" style={{ color: event.kind === "tool_stderr" ? "rgba(248,113,113,0.9)" : "rgba(255,255,255,0.7)" }}>
+                    {event.detail}
+                  </code>
+                </div>
+              )}
+              {event.detail && !["tool_call", "tool_start", "tool_stdout", "tool_stderr"].includes(event.kind) && (
+                <p className="text-[12px] text-white/62 mt-1.5 leading-relaxed break-all">{event.detail}</p>
+              )}
               {event.metrics && Object.keys(event.metrics).length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {Object.entries(event.metrics).map(([key, value]) => (

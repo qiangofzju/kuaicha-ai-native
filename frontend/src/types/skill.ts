@@ -16,6 +16,8 @@ export interface SkillDefinition {
   owned: boolean;
   cover: string;
   market_status: SkillMarketStatus;
+  source?: string;
+  source_raw?: string;
 }
 
 export interface SkillStoreSection {
@@ -87,8 +89,12 @@ export interface SkillManifest {
     properties?: Record<string, Record<string, unknown>>;
   };
   permissions: string[];
+  entrypoint?: string;
+  source?: string;
+  source_raw?: string;
   ui: {
     theme_accent?: string;
+    stages?: string[];
     chat_card?: {
       show_fields?: string[];
       allow_file_upload?: boolean;
@@ -142,21 +148,30 @@ export interface SkillTraceEvent {
   ts: string;
   stage: string;
   stage_index: number;
-  kind: "phase_start" | "phase_done" | "routing" | "query" | "transform" | "delivery" | "warn" | "error" | "info";
+  kind:
+    | "phase_start"
+    | "phase_done"
+    | "routing"
+    | "query"
+    | "transform"
+    | "delivery"
+    | "warn"
+    | "error"
+    | "info"
+    | "thinking"
+    | "tool_call"
+    | "tool_result"
+    | "file_write"
+    | "plan"
+    | "tool_start"
+    | "tool_stdout"
+    | "tool_stderr"
+    | "tool_end"
+    | "fs_change";
   title: string;
   detail: string;
-  metrics: {
-    matched_rows?: number;
-    selected_table_count?: number;
-    selected_category_count?: number;
-    processed_fields?: number;
-    missing_fields_filled?: number;
-    preview_rows?: number;
-    duration_ms?: number;
-    duration_sec?: number;
-    fallback_used?: boolean;
-  };
-  status: "running" | "done" | "warning" | "error";
+  metrics: Record<string, unknown>;
+  status: "running" | "done" | "warning" | "error" | "cancelled";
 }
 
 export interface SkillTask {
@@ -177,7 +192,8 @@ export interface SkillResultData {
   skill_type?: string;
   summary: string;
   metadata: { duration?: number; data_points?: number; [key: string]: unknown };
-  query_type?: "filter" | "export" | "derived";
+  query_type?: "filter" | "export" | "derived" | "generated";
+  result_mode?: string;
   generated_sql?: string;
   sql_description?: string;
   columns?: BatchColumn[];
@@ -186,4 +202,27 @@ export interface SkillResultData {
   stats?: BatchStats;
   data_quality?: BatchDataQuality;
   schema_routing?: BatchSchemaRouting;
+  created_skill_id?: string;
+  created_skill_name?: string;
+  artifact_root?: string;
+  artifact_vfs_root?: string;
+  artifact_tree?: string;
+  delivery_notes?: string;
+  artifact_files?: SkillArtifactFile[];
+}
+
+export interface SkillArtifactFile {
+  name: string;
+  path: string;
+  summary: string;
+  preview?: string;
+}
+
+export interface SkillCreatorResult extends SkillResultData {
+  created_skill_id: string;
+  created_skill_name: string;
+  artifact_root: string;
+  artifact_tree: string;
+  delivery_notes: string;
+  artifact_files: SkillArtifactFile[];
 }
