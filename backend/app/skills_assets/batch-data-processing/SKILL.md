@@ -1,3 +1,96 @@
+---
+name: 批量数据处理
+description: 自然语言筛选企业名单，结构化批量导出，多表衍生字段加工
+app:
+  id: batch
+  version: 1.0.0
+  display_name: 批量数据处理技能
+  category: data-processing
+  status: ready
+  author: '@快查数据团队'
+  tags:
+  - 数据处理
+  - 批量导出
+  - 企业库
+  entrypoints:
+    standalone: true
+    chat_invoke: true
+    external_api: true
+  triggers:
+    mention_ids:
+    - batch
+    mention_aliases:
+    - 批量数据处理
+    - 批量数据处理技能
+  execution:
+    mode: script
+    agent_id: batch
+    driver: claude_code
+  input_schema:
+    type: object
+    required:
+    - query
+    - scenario
+    properties:
+      query:
+        type: string
+        title: 数据查询需求
+        description: 例如：杭州市今年的人工智能企业有哪些？
+      scenario:
+        type: string
+        enum:
+        - filter
+        - export
+        - derived
+        title: 处理场景
+      company_names:
+        type: array
+        items:
+          type: string
+        title: 企业名单数组
+      company_names_text:
+        type: string
+        title: 企业名单文本
+        description: 支持逗号、顿号或换行分隔
+  output_schema:
+    type: object
+    required:
+    - summary
+    - columns
+    - preview_rows
+    - total_count
+    properties:
+      summary:
+        type: string
+      columns:
+        type: array
+      preview_rows:
+        type: array
+      total_count:
+        type: integer
+  permissions:
+  - db:enterprise.read
+  - export:excel
+  - chat:invoke
+  ui:
+    theme_accent: '#F59E0B'
+    stages:
+    - 需求解析
+    - 数据查询
+    - 字段加工
+    - 数据交付
+    chat_card:
+      show_fields:
+      - scenario
+      - query
+      - company_names_text
+      allow_file_upload: false
+    standalone:
+      show_trace: true
+      show_export: true
+  entrypoint: python3 scripts/run.py
+---
+
 # Batch Data Processing Skill
 
 ## Goal

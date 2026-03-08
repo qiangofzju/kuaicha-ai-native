@@ -299,34 +299,8 @@ class GeneratedSkillRuntimeAgent(BaseAgent):
         if exit_code != 0:
             raise RuntimeError(f"Command failed: {cmd_text} (exit={exit_code})")
 
-    @staticmethod
-    def _manifest_extra(manifest: Any) -> dict[str, Any]:
-        if manifest is None:
-            return {}
-        dumped = manifest.model_dump() if hasattr(manifest, "model_dump") else {}
-        known = {
-            "id",
-            "version",
-            "name",
-            "display_name",
-            "description",
-            "category",
-            "status",
-            "author",
-            "tags",
-            "entrypoints",
-            "triggers",
-            "execution",
-            "input_schema",
-            "output_schema",
-            "permissions",
-            "ui",
-        }
-        return {key: value for key, value in dumped.items() if key not in known}
-
     def _resolve_entrypoint(self, manifest: Any, skill_root: Path) -> list[str] | None:
-        extra = self._manifest_extra(manifest)
-        raw_entrypoint = str(extra.get("entrypoint") or "").strip()
+        raw_entrypoint = str(getattr(manifest, "entrypoint", "") or "").strip()
         if raw_entrypoint:
             return shlex.split(raw_entrypoint)
         if (skill_root / "scripts" / "run.py").exists():
@@ -356,7 +330,7 @@ class GeneratedSkillRuntimeAgent(BaseAgent):
             query = "请根据输入给出结构化建议"
 
         if manifest_path is None:
-            raise RuntimeError("技能 manifest 不存在，无法执行")
+            raise RuntimeError("技能定义不存在，无法执行")
 
         skill_root = manifest_path.parent
         display_root = ""
@@ -467,7 +441,7 @@ class GeneratedSkillRuntimeAgent(BaseAgent):
         else:
             await self._stream_text(
                 on_progress,
-                "未发现 manifest.entrypoint，已跳过脚本执行并进入兼容摘要模式。\n",
+                "未发现技能入口定义，已跳过脚本执行并进入兼容摘要模式。\n",
                 stage="规则执行",
                 message="未发现技能入口",
             )

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import csv
 import io
+import random
 import re
+import shutil
 import uuid
 from pathlib import Path
 from typing import Any, Optional
@@ -15,9 +17,10 @@ from app.agents.executor import executor
 from app.schemas.agent import TaskStatus
 from app.services.agent_service import agent_service
 from app.skills_core.chat_invoke import skill_mention_parser
-from app.skills_core.manifest_loader import manifest_registry
+from app.skills_core.manifest_loader import manifest_registry, load_skill_manifest
 from app.skills_core.runtime import skills_runtime
 from app.skills_core.manifest_schema import SkillManifest
+from app.services.workspace.config import workspace_config
 from app.utils.mock_skills import (
     get_mock_my_skills,
     get_mock_purchase_records,
@@ -58,12 +61,16 @@ class SkillService:
             return item
 
         merged = dict(item)
+        source, raw_source = self._normalized_source(manifest)
         merged["name"] = manifest.display_name
         merged["description"] = manifest.description
         merged["author"] = manifest.author
         merged["status"] = manifest.status
         merged["market_status"] = "ready" if manifest.status == "ready" else "coming"
         merged["tags"] = manifest.tags or merged.get("tags", [])
+        merged["source"] = source or None
+        merged["source_raw"] = raw_source or None
+        merged["deletable"] = self._is_user_generated_manifest(manifest)
         return merged
 
     def _status_from_record(self, task: dict[str, Any], skill_id: str) -> dict[str, Any]:
@@ -87,32 +94,8 @@ class SkillService:
         return normalized
 
     @staticmethod
-    def _manifest_extra(manifest: SkillManifest) -> dict[str, Any]:
-        dumped = manifest.model_dump()
-        known = {
-            "id",
-            "version",
-            "name",
-            "display_name",
-            "description",
-            "category",
-            "status",
-            "author",
-            "tags",
-            "entrypoints",
-            "triggers",
-            "execution",
-            "input_schema",
-            "output_schema",
-            "permissions",
-            "ui",
-        }
-        return {k: v for k, v in dumped.items() if k not in known}
-
-    @staticmethod
     def _normalized_source(manifest: SkillManifest) -> tuple[str, str]:
-        extra = SkillService._manifest_extra(manifest)
-        raw_source = str(extra.get("source", "")).strip()
+        raw_source = str(manifest.source or "").strip()
         if raw_source in {"user_generated", "builder"} or manifest.author == "@SkillCreator":
             return "builder", raw_source or "builder"
         return raw_source, raw_source
@@ -127,12 +110,95 @@ class SkillService:
         return payload
 
     def _is_internal_manifest(self, manifest: SkillManifest) -> bool:
-        extra = self._manifest_extra(manifest)
-        return bool(extra.get("internal"))
+        return bool(manifest.internal)
+
+    def _is_user_generated_manifest(self, manifest: SkillManifest) -> bool:
+        source, _ = self._normalized_source(manifest)
+        return source == "builder"
+
+    @staticmethod
+    def _is_path_within(path: Path, root: Path) -> bool:
+        try:
+            path.resolve().relative_to(root.resolve())
+            return True
+        except ValueError:
+            return False
+
+    def _allowed_user_skill_roots(self) -> tuple[Path, ...]:
+        app_user_generated_root = (
+            Path(__file__).resolve().parent.parent / "skills_assets" / "user-generated"
+        ).resolve()
+        return (app_user_generated_root, workspace_config.user_generated_root.resolve())
+
+    def _find_user_skill_dirs(self, skill_id: str) -> list[Path]:
+        matches: list[Path] = []
+        seen: set[Path] = set()
+
+        manifest = manifest_registry.get_manifest(skill_id)
+        if manifest is not None and self._is_user_generated_manifest(manifest):
+            manifest_path = manifest_registry.get_manifest_path(skill_id)
+            if manifest_path is not None:
+                resolved = manifest_path.parent.resolve()
+                matches.append(resolved)
+                seen.add(resolved)
+
+        allowed_roots = self._allowed_user_skill_roots()
+        for root in allowed_roots:
+            if not root.exists():
+                continue
+
+            direct_skill_file = root / skill_id / "SKILL.md"
+            candidates = [direct_skill_file] if direct_skill_file.exists() else sorted(root.rglob("SKILL.md"))
+            for skill_md_path in candidates:
+                if not skill_md_path.is_file():
+                    continue
+                try:
+                    manifest = load_skill_manifest(skill_md_path)
+                except Exception:
+                    continue
+                if manifest.id != skill_id:
+                    continue
+                if self._is_user_generated_manifest(manifest):
+                    resolved = skill_md_path.parent.resolve()
+                    if resolved not in seen:
+                        matches.append(resolved)
+                        seen.add(resolved)
+        return matches
+
+    # Icon and color pools for user-created skills
+    _SKILL_ICONS = [
+        "Shield", "Brain", "Network", "TrendUp", "Briefcase",
+        "Pulse", "Globe", "Database", "BarChart",
+        "Alert", "Doc", "Table", "Terminal",
+    ]
+    _SKILL_COLORS = [
+        "#3B82F6",  # blue
+        "#8B5CF6",  # violet
+        "#EC4899",  # pink
+        "#F59E0B",  # amber
+        "#06B6D4",  # cyan
+        "#EF4444",  # red
+        "#F97316",  # orange
+        "#6366F1",  # indigo
+        "#14B8A6",  # teal
+    ]
+
+    def _pick_icon(self, skill_id: str, manifest: SkillManifest) -> str:
+        icon = str(manifest.icon or "").strip()
+        if icon and icon != "Sparkle":
+            return icon
+        rng = random.Random(skill_id)
+        return rng.choice(self._SKILL_ICONS)
+
+    def _pick_color(self, skill_id: str, manifest: SkillManifest) -> str:
+        manifest_accent = manifest.ui.theme_accent if manifest.ui else None
+        if manifest_accent and manifest_accent != "#22C55E":
+            return manifest_accent
+        rng = random.Random(skill_id)
+        return rng.choice(self._SKILL_COLORS)
 
     def _build_dynamic_skill_item(self, manifest: SkillManifest, manifest_path: Path) -> dict[str, Any]:
-        extra = self._manifest_extra(manifest)
-        accent = manifest.ui.theme_accent if manifest.ui and manifest.ui.theme_accent else "#22C55E"
+        accent = self._pick_color(manifest.id, manifest)
         source, raw_source = self._normalized_source(manifest)
         owner = "@SkillCreator" if source == "builder" else (manifest.author or "@技能团队")
 
@@ -142,15 +208,16 @@ class SkillService:
             "description": manifest.description,
             "color": accent,
             "tags": manifest.tags or ["用户创建"],
-            "icon": str(extra.get("icon") or "Sparkle"),
+            "icon": self._pick_icon(manifest.id, manifest),
             "status": manifest.status,
             "author": owner,
             "price_type": "free",
             "owned": True,
-            "cover": str(extra.get("cover") or manifest_path.parent.name),
+            "cover": str(manifest.cover or manifest_path.parent.name),
             "market_status": "ready" if manifest.status == "ready" else "coming",
             "source": source,
             "source_raw": raw_source,
+            "deletable": self._is_user_generated_manifest(manifest),
         }
 
     def _list_dynamic_skills(self) -> list[dict[str, Any]]:
@@ -193,10 +260,12 @@ class SkillService:
         return self._agent_to_skill.get(agent_id, agent_id)
 
     def list_skills(self) -> list[dict]:
+        self.refresh_catalog()
         base = [self._merge_market_item_with_manifest(item) for item in get_mock_skill_list()]
         return self._merge_unique_items(base, self._list_dynamic_skills())
 
     def get_store(self) -> dict:
+        self.refresh_catalog()
         store = get_mock_skill_store()
         sections = []
         for section in store.get("sections", []):
@@ -218,6 +287,7 @@ class SkillService:
         return {"sections": sections}
 
     def get_my_skills(self) -> list[dict]:
+        self.refresh_catalog()
         base = [self._merge_market_item_with_manifest(item) for item in get_mock_my_skills()]
         return self._merge_unique_items(base, self._list_dynamic_skills())
 
@@ -230,6 +300,42 @@ class SkillService:
             "status": "submitted",
             "message": "技能创建申请已提交，进入审核队列",
             "review_id": f"skill-review-{uuid.uuid4().hex[:8]}",
+        }
+
+    def delete_skill(self, skill_id: str) -> dict[str, Any]:
+        self.refresh_catalog()
+        manifest = manifest_registry.get_manifest(skill_id)
+        if manifest is not None and self._is_internal_manifest(manifest):
+            raise HTTPException(status_code=404, detail="Skill not found")
+        if manifest is not None and not self._is_user_generated_manifest(manifest):
+            raise HTTPException(status_code=403, detail="仅支持删除用户自己创建的技能")
+
+        skill_dirs = self._find_user_skill_dirs(skill_id)
+        if not skill_dirs:
+            return {
+                "skill_id": skill_id,
+                "status": "deleted",
+                "message": "技能不存在或已删除",
+            }
+
+        allowed_roots = self._allowed_user_skill_roots()
+        for skill_dir in skill_dirs:
+            if not any(self._is_path_within(skill_dir, root) for root in allowed_roots):
+                raise HTTPException(status_code=403, detail="技能目录不在允许删除的范围内")
+            if skill_dir.exists():
+                shutil.rmtree(skill_dir)
+
+        self._run_to_skill = {
+            run_id: mapped_skill_id
+            for run_id, mapped_skill_id in self._run_to_skill.items()
+            if mapped_skill_id != skill_id
+        }
+        self.refresh_catalog()
+
+        return {
+            "skill_id": skill_id,
+            "status": "deleted",
+            "message": "技能已删除",
         }
 
     def get_catalog(self) -> list[dict[str, Any]]:
@@ -270,7 +376,7 @@ class SkillService:
             return None
 
         agent_id = manifest.execution.agent_id
-        if agent_id:
+        if manifest.execution.mode != "script" and agent_id:
             config = agent_service.get_agent_config(agent_id)
             if config is not None:
                 normalized = dict(config)

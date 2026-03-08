@@ -27,10 +27,12 @@ class SkillsRuntime:
         if manifest.status != "ready":
             raise HTTPException(status_code=409, detail="技能即将上线，暂不支持执行")
 
-        if manifest.execution.mode != "agent_workflow":
+        if manifest.execution.mode not in {"agent_workflow", "script"}:
             raise HTTPException(status_code=501, detail="当前技能执行模式尚未实现")
 
         agent_id = manifest.execution.agent_id
+        if manifest.execution.mode == "script":
+            agent_id = "generated-skill-runtime"
         if not agent_id:
             raise HTTPException(status_code=500, detail="技能执行配置缺少 agent_id")
 

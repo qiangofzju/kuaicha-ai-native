@@ -12,6 +12,7 @@ from app.schemas.skill import (
     SkillConfigSchema,
     SkillCreateRequest,
     SkillCreateResponse,
+    SkillDeleteResponse,
     SkillDefinition,
     SkillManifestResponse,
     SkillResultResponse,
@@ -131,6 +132,11 @@ async def get_purchase_records():
 @skill_router.post("/create", response_model=SkillCreateResponse)
 async def create_skill(req: SkillCreateRequest):
     return skill_service.create_skill(req.model_dump())
+
+
+@skill_router.delete("/{skill_id}", response_model=SkillDeleteResponse)
+async def delete_skill(skill_id: str):
+    return skill_service.delete_skill(skill_id)
 
 
 @skill_router.get("/catalog", response_model=list[SkillCatalogItem])

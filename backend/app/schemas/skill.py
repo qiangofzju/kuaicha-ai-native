@@ -39,6 +39,9 @@ class SkillDefinition(BaseModel):
     owned: bool
     cover: str
     market_status: SkillMarketStatus
+    source: Optional[str] = None
+    source_raw: Optional[str] = None
+    deletable: bool = False
 
 
 class SkillStoreSection(BaseModel):
@@ -74,6 +77,12 @@ class SkillCreateResponse(BaseModel):
     status: str
     message: str
     review_id: str
+
+
+class SkillDeleteResponse(BaseModel):
+    skill_id: str
+    status: str
+    message: str
 
 
 class SkillConfigField(BaseModel):

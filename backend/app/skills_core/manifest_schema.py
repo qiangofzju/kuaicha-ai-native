@@ -1,4 +1,4 @@
-"""Pydantic schema for skill manifest files."""
+"""Pydantic schema for parsed skill package metadata."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class SkillTriggers(BaseModel):
 class SkillExecutionConfig(BaseModel):
     """Execution adapter configuration."""
 
-    mode: Literal["agent_workflow", "python_callable", "http_adapter"] = "agent_workflow"
+    mode: Literal["agent_workflow", "python_callable", "http_adapter", "script"] = "agent_workflow"
     agent_id: str | None = None
     driver: str | None = None
 
@@ -52,7 +52,7 @@ class SkillUiConfig(BaseModel):
 
 
 class SkillManifest(BaseModel):
-    """Skill manifest contract."""
+    """Canonical app-facing metadata derived from ``SKILL.md`` frontmatter."""
 
     model_config = ConfigDict(extra="allow")
 
@@ -72,3 +72,8 @@ class SkillManifest(BaseModel):
     output_schema: JsonSchemaNode = Field(default_factory=JsonSchemaNode)
     permissions: list[str] = Field(default_factory=list)
     ui: SkillUiConfig = Field(default_factory=SkillUiConfig)
+    entrypoint: str | None = None
+    icon: str | None = None
+    cover: str | None = None
+    source: str | None = None
+    internal: bool = False
