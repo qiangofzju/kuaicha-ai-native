@@ -41,6 +41,8 @@ def register_all_agents():
     from app.agents.workflows.relationship_explorer import RelationshipExplorerAgent
     from app.agents.workflows.trend_analysis import TrendAnalysisAgent
     from app.agents.workflows.batch_processing import BatchProcessingAgent
+    from app.agents.workflows.skill_creator import SkillCreatorAgent
+    from app.agents.workflows.generated_skill_runtime import GeneratedSkillRuntimeAgent
 
     registry.register(RiskDueDiligenceAgent())
     registry.register(SentimentBriefingAgent())
@@ -48,5 +50,7 @@ def register_all_agents():
     registry.register(RelationshipExplorerAgent())
     registry.register(TrendAnalysisAgent())
     registry.register(BatchProcessingAgent())
+    registry.register(SkillCreatorAgent())
+    registry.register(GeneratedSkillRuntimeAgent())
 
     logger.info("All agents registered. Total: %d", len(registry.list_all()))

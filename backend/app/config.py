@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     # Use mock data for responses
     USE_MOCK_DATA: bool = True
 
+    # Skills API key gate (reserved for external invoke)
+    SKILL_API_KEY_ENABLED: bool = False
+    SKILL_API_KEYS: str = ""
+
+    # Workspace root directory (empty = default: project_root/data/workspaces)
+    WORKSPACE_ROOT: str = ""
+
     class Config:
         env_file = (
             os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env.local"),

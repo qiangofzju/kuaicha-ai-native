@@ -12,6 +12,8 @@ venv/
 
 # Build
 .next/
+.next-dev/
+.next-build/
 out/
 dist/
 build/
@@ -43,5 +45,8 @@ Thumbs.db
 # Package lock (optional, uncomment if needed)
 # package-lock.json
 
-# Skills
-skills/
+# Skills (ignore only repository root skills directory)
+/skills/
+
+# Workspace data
+data/workspaces/
