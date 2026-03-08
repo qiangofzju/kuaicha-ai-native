@@ -5,13 +5,26 @@ from typing import Optional
 
 from app.agents.base import AgentInput
 from app.agents.executor import executor
-from app.agents.registry import registry
+from app.agents.registry import register_all_agents, registry
 from app.utils.logger import logger
 from app.utils.mock_data import get_mock_agent_config, get_mock_agent_list
 
 
 class AgentService:
     """High-level service for agent operations."""
+
+    @staticmethod
+    def _get_registered_agent(agent_id: str):
+        agent = registry.get(agent_id)
+        if agent is not None:
+            return agent
+
+        try:
+            register_all_agents()
+        except Exception as exc:
+            logger.warning("Failed to lazily register agents for %s: %s", agent_id, exc)
+            return None
+        return registry.get(agent_id)
 
     # ------------------------------------------------------------------
     # Agent catalogue
@@ -32,7 +45,7 @@ class AgentService:
         Prefer workflow-owned schema for registered agents so each agent
         can evolve its own config contract independently.
         """
-        agent = registry.get(agent_id)
+        agent = self._get_registered_agent(agent_id)
         if agent is not None:
             try:
                 return agent.get_config_schema()
@@ -55,7 +68,7 @@ class AgentService:
 
         Returns ``None`` if the agent is not found.
         """
-        agent = registry.get(agent_id)
+        agent = self._get_registered_agent(agent_id)
         if agent is None:
             logger.warning("Agent not found: %s", agent_id)
             return None

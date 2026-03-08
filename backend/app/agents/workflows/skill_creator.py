@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+import random
 import re
 import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+
+import yaml
 
 from app.agents.base import AgentInput, AgentProgress, AgentResult, BaseAgent
 from app.agents.driver import get_driver
@@ -28,7 +31,7 @@ def _slugify(text: str) -> str:
     lowered = re.sub(r"[^a-z0-9\u4e00-\u9fff\s_-]", " ", lowered)
     lowered = re.sub(r"\s+", "-", lowered)
     lowered = re.sub(r"-+", "-", lowered).strip("-")
-    ascii_like = re.sub(r"[^a-z0-9-]", "", lowered)
+    ascii_like = re.sub(r"[^a-z0-9-]", "", lowered).strip("-")
     if ascii_like:
         return ascii_like[:42]
     return f"skill-{uuid.uuid4().hex[:6]}"
@@ -60,56 +63,13 @@ def _infer_category(requirement: str) -> str:
     return "general"
 
 
-def _build_skill_md(
-    skill_name: str,
-    skill_id: str,
-    category: str,
-    requirement: str,
-    llm_note: str,
-) -> str:
-    draft_line = llm_note.strip() if llm_note.strip() else "本技能由 Skill Creator 自动生成初版结构。"
-    return f"""# {skill_name}
+def _build_skill_md(frontmatter: dict[str, Any], body_markdown: str) -> str:
+    frontmatter_text = yaml.safe_dump(frontmatter, allow_unicode=True, sort_keys=False).strip()
+    return f"""---
+{frontmatter_text}
+---
 
-## Goal
-
-为业务提供一个可复用的技能入口，支持在聊天中通过 `@{skill_id}` 触发，并在技能广场中直接执行。
-
-## Requirement
-
-{requirement}
-
-## Category
-
-- `{category}`
-
-## Inputs
-
-- `query` (required): 用户输入的技能调用需求
-- `context` (optional): 扩展上下文
-
-## Outputs
-
-- `summary`: 执行摘要
-- `preview_rows`: 结构化预览数据
-- `total_count`: 结果条数
-
-## Runtime
-
-- execution mode: `agent_workflow`
-- mapped agent: `generated-skill-runtime`
-- command chain:
-  1. `python3 scripts/validate_input.py`
-  2. `python3 scripts/run.py`
-  3. `python3 scripts/format_output.py`
-
-## Artifact
-
-- 输出目录: `outputs/latest.json`
-- 运行日志: 由工作台终端实时展示
-
-## Notes
-
-{draft_line}
+{body_markdown.rstrip()}
 """
 
 
@@ -131,6 +91,231 @@ def _build_reference_md(skill_name: str, skill_id: str) -> str:
 
 运行结果会写入 `outputs/latest.json`，并在工作台中同步展示。
 """
+
+
+def _build_openai_yaml(skill_name: str, requirement: str) -> str:
+    short_description = requirement[:48].strip() or skill_name
+    payload = {
+        "interface": {
+            "display_name": skill_name,
+            "short_description": short_description,
+        }
+    }
+    return yaml.safe_dump(payload, allow_unicode=True, sort_keys=False).strip() + "\n"
+
+
+def _load_skill_creator_context() -> dict[str, str]:
+    skill_root = Path(__file__).resolve().parents[2] / "skills_assets" / "skill-creator"
+    context: dict[str, str] = {}
+    for rel_path in [
+        "SKILL.md",
+        "references/openai_yaml.md",
+        "scripts/init_skill.py",
+        "scripts/quick_validate.py",
+        "scripts/generate_openai_yaml.py",
+    ]:
+        path = skill_root / rel_path
+        if path.exists():
+            context[rel_path] = path.read_text(encoding="utf-8")
+    return context
+
+
+def _build_default_skill_spec(
+    *,
+    skill_name: str,
+    skill_id: str,
+    category: str,
+    requirement: str,
+) -> dict[str, Any]:
+    return {
+        "display_name": skill_name,
+        "canonical_name": skill_name.replace("技能", "") or skill_name,
+        "category": category,
+        "short_description": requirement[:48].strip() or skill_name,
+        "assistant_summary": f"我将为你创建技能 {skill_name}，先生成标准技能包骨架，再补齐技能说明、参考资料和运行脚本。",
+        "planning_steps": [
+            "分析技能目标与适用场景",
+            "初始化标准技能包目录",
+            "生成 SKILL.md、参考文档和脚本",
+            "验证并输出创建总结",
+        ],
+        "reference_files": [
+            {
+                "path": "references/usage.md",
+                "summary": "技能使用说明",
+                "content": _build_reference_md(skill_name, skill_id),
+            }
+        ],
+        "skill_md_body": f"""# {skill_name}
+
+## Overview
+
+为业务提供一个可复用的技能入口，支持在聊天中通过 `@{skill_id}` 触发，并在技能广场中直接执行。
+
+## Requirement
+
+{requirement}
+
+## Inputs
+
+- `query` (required): 用户输入的技能调用需求
+
+## Outputs
+
+- `summary`
+- `preview_rows`
+- `total_count`
+
+## Execution
+
+Run the standard package script chain:
+
+1. `python3 scripts/validate_input.py`
+2. `python3 scripts/run.py`
+3. `python3 scripts/format_output.py`
+
+## References
+
+- See `references/usage.md` for invocation guidance.
+
+## Notes
+
+Category: `{category}`
+
+本技能由 Skill Creator 自动生成初版结构。
+""",
+    }
+
+
+def _build_clarification_questions(requirement: str) -> list[str]:
+    text = requirement.strip()
+    questions = [
+        "你想支持哪些具体场景或能力？请给 2-4 个典型例子。",
+        "用户会如何触发这个技能？请给出 2-3 条典型输入示例。",
+        "是否需要附带参考资料、脚本或资源文件？如果需要，请说明类型。",
+    ]
+    if any(token in text for token in ["导出", "报表", "sql", "批量"]):
+        questions[2] = "是否需要脚本或数据模板来支撑执行？如果需要，请说明会处理哪些文件或数据。"
+    return questions
+
+
+def _needs_clarification_heuristic(requirement: str) -> bool:
+    text = (requirement or "").strip()
+    if len(text) < 12:
+        return True
+
+    strong_signals = [
+        "支持",
+        "包含",
+        "用于",
+        "用户",
+        "输入",
+        "输出",
+        "示例",
+        "流程",
+        "参考资料",
+        "脚本",
+        "资源",
+        "触发",
+        "结果",
+        "页面",
+        "图表",
+        "导出",
+        "接口",
+    ]
+    hit_count = sum(1 for token in strong_signals if token in text)
+    if hit_count >= 2:
+        return False
+
+    weak_patterns = [
+        "帮我创建",
+        "做一个",
+        "搞一个",
+        "建一个",
+    ]
+    if any(token in text for token in weak_patterns) and hit_count == 0:
+        return True
+
+    return len(text) < 24
+
+
+def _build_skill_frontmatter(
+    *,
+    skill_name: str,
+    skill_id: str,
+    category: str,
+    requirement: str,
+    short_description: str,
+    icon: str,
+    accent: str,
+) -> dict[str, Any]:
+    return {
+        "name": skill_id,
+        "description": requirement[:140],
+        "metadata": {
+            "short-description": short_description,
+        },
+        "app": {
+            "id": skill_id,
+            "version": "1.0.0",
+            "display_name": skill_name,
+            "category": category,
+            "status": "ready",
+            "author": "@SkillCreator",
+            "tags": ["用户创建", category],
+            "entrypoints": {
+                "standalone": True,
+                "chat_invoke": True,
+                "external_api": True,
+            },
+            "triggers": {
+                "mention_ids": [skill_id],
+                "mention_aliases": [skill_name],
+            },
+            "execution": {
+                "mode": "script",
+                "agent_id": "generated-skill-runtime",
+                "driver": "generated-runtime",
+            },
+            "entrypoint": "python3 scripts/run.py",
+            "input_schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "title": "调用内容",
+                        "description": "输入希望技能处理的请求",
+                    }
+                },
+            },
+            "output_schema": {
+                "type": "object",
+                "required": ["summary", "preview_rows", "total_count"],
+                "properties": {
+                    "summary": {"type": "string"},
+                    "preview_rows": {"type": "array"},
+                    "total_count": {"type": "integer"},
+                },
+            },
+            "permissions": ["skill:generated.execute", "chat:invoke"],
+            "ui": {
+                "theme_accent": accent,
+                "stages": ["需求解析", "规则执行", "结果整理"],
+                "chat_card": {
+                    "show_fields": ["query"],
+                    "allow_file_upload": False,
+                },
+                "standalone": {
+                    "show_trace": True,
+                    "show_export": False,
+                },
+            },
+            "icon": icon,
+            "cover": "custom",
+            "source": "builder",
+        },
+    }
 
 
 def _build_validate_script() -> str:
@@ -164,13 +349,109 @@ if __name__ == "__main__":
 
 def _build_run_script() -> str:
     return """#!/usr/bin/env python3
-\"\"\"Execute generated skill and materialize outputs/latest.json.\"\"\"
+\"\"\"Execute one generated skill package with the configured app driver.\"\"\"
 
 from __future__ import annotations
 
+import asyncio
 import json
+import os
 from pathlib import Path
 import sys
+
+import yaml
+
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+os.environ["DEBUG"] = "false"
+
+from app.agents.driver import get_driver
+
+
+def _parse_frontmatter(skill_md_path: Path) -> tuple[dict, str]:
+    content = skill_md_path.read_text(encoding="utf-8")
+    stripped = content.lstrip()
+    if not stripped.startswith("---"):
+        raise RuntimeError("SKILL.md 缺少 frontmatter")
+    lines = stripped.splitlines()
+    end_index = None
+    for index in range(1, len(lines)):
+        if lines[index].strip() == "---":
+            end_index = index
+            break
+    if end_index is None:
+        raise RuntimeError("SKILL.md frontmatter 未闭合")
+    frontmatter = yaml.safe_load("\\n".join(lines[1:end_index])) or {}
+    if not isinstance(frontmatter, dict):
+        raise RuntimeError("SKILL.md frontmatter 非法")
+    body = "\\n".join(lines[end_index + 1 :]).lstrip("\\n")
+    return frontmatter, body
+
+
+def _load_references(reference_dir: Path) -> list[dict]:
+    if not reference_dir.exists():
+        return []
+    docs = []
+    for path in sorted(reference_dir.glob("*.md")):
+        docs.append(
+            {
+                "path": str(path.relative_to(reference_dir.parent)).replace("\\\\", "/"),
+                "content": path.read_text(encoding="utf-8"),
+            }
+        )
+    return docs
+
+
+async def _run(payload: dict) -> dict:
+    skill_root = Path.cwd()
+    frontmatter, skill_body = _parse_frontmatter(skill_root / "SKILL.md")
+    app_block = frontmatter.get("app", {}) if isinstance(frontmatter, dict) else {}
+    query = str(payload.get("query") or payload.get("target") or "").strip()
+    if not query:
+        raise RuntimeError("missing-query")
+
+    references = _load_references(skill_root / "references")
+    prompt = (
+        "你正在执行一个技能包。请结合 skill 定义、参考资料和用户输入，输出结构化 JSON 结果。\\n\\n"
+        f"Skill metadata:\\n{json.dumps(app_block, ensure_ascii=False, indent=2)}\\n\\n"
+        f"SKILL.md body:\\n{skill_body}\\n\\n"
+        f"References:\\n{json.dumps(references, ensure_ascii=False, indent=2)}\\n\\n"
+        f"User query:\\n{query}\\n"
+    )
+    schema = {
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+            "preview_rows": {"type": "array"},
+            "total_count": {"type": "integer"},
+            "columns": {"type": "array"},
+        },
+        "required": ["summary", "preview_rows", "total_count"],
+    }
+
+    driver = get_driver()
+    response = await driver.call(
+        prompt=prompt,
+        system="你是技能运行器。严格按照技能定义和参考资料工作，只输出 JSON。",
+        json_schema=schema,
+    )
+    try:
+        result = json.loads(response.content)
+    except json.JSONDecodeError:
+        result = {
+            "summary": response.content.strip() or "技能执行完成",
+            "preview_rows": [],
+            "total_count": 0,
+            "columns": [],
+        }
+    if not isinstance(result, dict):
+        raise RuntimeError("invalid-skill-output")
+    result.setdefault("summary", "技能执行完成")
+    result.setdefault("preview_rows", [])
+    result.setdefault("total_count", len(result["preview_rows"]) if isinstance(result.get("preview_rows"), list) else 0)
+    result.setdefault("columns", [])
+    return result
 
 
 def main() -> int:
@@ -180,40 +461,11 @@ def main() -> int:
         print("invalid-json", file=sys.stderr)
         return 1
 
-    query = str(payload.get("query", "")).strip()
-    if not query:
-        print("missing-query", file=sys.stderr)
+    try:
+        result = asyncio.run(_run(payload))
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
         return 2
-
-    rows = [
-        {
-            "step": "输入理解",
-            "output": query,
-            "note": "已识别本次技能请求内容",
-        },
-        {
-            "step": "规则执行",
-            "output": "完成参数校验与逻辑生成",
-            "note": "可继续追加限制条件与目标字段",
-        },
-        {
-            "step": "交付建议",
-            "output": "建议继续细化输入以提升结果精度",
-            "note": "支持通过 @skill-id 反复调用",
-        },
-    ]
-
-    result = {
-        "summary": f"技能已完成执行，共输出 {len(rows)} 条结构化结果。",
-        "columns": [
-            {"key": "step", "label": "步骤", "type": "text"},
-            {"key": "output", "label": "输出", "type": "text"},
-            {"key": "note", "label": "说明", "type": "text"},
-        ],
-        "preview_rows": rows,
-        "total_count": len(rows),
-        "result_mode": "inline_delivery",
-    }
 
     out_dir = Path("outputs")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -360,6 +612,361 @@ class SkillCreatorAgent(BaseAgent):
         except Exception:
             return ""
 
+    async def _emit_clarification(
+        self,
+        *,
+        on_progress: Optional[Any],
+        trace_state: dict[str, Any],
+        questions: list[str],
+    ) -> None:
+        detail = "请先确认以下信息：\n\n" + "\n".join(f"{index + 1}. {question}" for index, question in enumerate(questions))
+        await self._trace(
+            on_progress,
+            trace_state,
+            stage="需求分析",
+            stage_index=0,
+            kind="clarification",
+            title="需要你确认的信息",
+            detail=detail,
+            status="running",
+            progress=0.22,
+        )
+
+    async def _decide_clarification(
+        self,
+        *,
+        requirement: str,
+        enable_cli_draft: bool,
+    ) -> dict[str, Any]:
+        default_questions = _build_clarification_questions(requirement)
+        default_needs = _needs_clarification_heuristic(requirement)
+        default_payload = {
+            "needs_clarification": default_needs,
+            "reason": "需求信息不足，建议先补充使用场景、触发示例和资源约束。"
+            if default_needs
+            else "需求已包含较明确的能力范围，可直接进入技能规划与创建。",
+            "questions": default_questions if default_needs else [],
+        }
+
+        if settings.AGENT_DRIVER.lower() != "cli" or not enable_cli_draft:
+            return default_payload
+
+        schema = {
+            "type": "object",
+            "properties": {
+                "needs_clarification": {"type": "boolean"},
+                "reason": {"type": "string"},
+                "questions": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+            },
+            "required": ["needs_clarification", "reason", "questions"],
+        }
+        prompt = (
+            "请判断下面的技能创建需求，是否已经足够明确到可以直接开始创建技能包。"
+            "只有在缺少关键能力范围、触发方式、输入输出预期、资源约束时，才需要澄清。\n\n"
+            f"用户需求：{requirement}\n\n"
+            "输出 JSON：\n"
+            "- needs_clarification: 是否必须先澄清\n"
+            "- reason: 判断理由\n"
+            "- questions: 如果 needs_clarification=true，给出最多 3 个关键问题；否则返回空数组\n"
+        )
+
+        try:
+            driver = get_driver()
+            response = await driver.call(
+                prompt=prompt,
+                system="你是技能创建流程的需求判断器。必须严格输出符合 schema 的 JSON。",
+                json_schema=schema,
+            )
+            payload = json.loads(response.content)
+            if not isinstance(payload, dict):
+                return default_payload
+            questions = payload.get("questions", [])
+            normalized_questions = [
+                str(item).strip()
+                for item in questions
+                if str(item).strip()
+            ][:3]
+            needs_clarification = bool(payload.get("needs_clarification"))
+            if needs_clarification and not normalized_questions:
+                normalized_questions = default_questions
+            return {
+                "needs_clarification": needs_clarification,
+                "reason": str(payload.get("reason") or default_payload["reason"]).strip() or default_payload["reason"],
+                "questions": normalized_questions if needs_clarification else [],
+            }
+        except Exception:
+            return default_payload
+
+    async def _stream_cli_plan(
+        self,
+        *,
+        requirement: str,
+        on_progress: Optional[Any],
+        trace_state: dict[str, Any],
+    ) -> None:
+        if settings.AGENT_DRIVER.lower() != "cli":
+            await self._trace(
+                on_progress,
+                trace_state,
+                stage="需求分析",
+                stage_index=0,
+                kind="thinking",
+                title="创建策略",
+                detail="当前为非 CLI 驱动，使用后端降级规划流程。",
+                progress=0.12,
+            )
+            return
+
+        driver = get_driver()
+        skill_context = _load_skill_creator_context()
+        system = (
+            "你是技能创建助手。请参考 skill-creator 技能包的工作方式，"
+            "用中文输出简洁但清晰的创建计划、文件规划和执行判断。"
+        )
+        prompt = (
+            f"用户需求：{requirement}\n\n"
+            "请先规划如何创建这个技能。输出要求：\n"
+            "1. 先一句话确认你理解的技能目标。\n"
+            "2. 给出 3-5 步执行计划。\n"
+            "3. 说明将创建哪些关键文件。\n"
+            "4. 不要输出代码块。\n\n"
+            f"skill-creator/SKILL.md:\n{skill_context.get('SKILL.md', '')}\n"
+        )
+
+        buffered = ""
+        line_count = 0
+        async for chunk in driver.call_streaming(prompt=prompt, system=system):
+            if chunk.startswith("[Error]") or chunk.startswith("[CLI Error]"):
+                await self._trace(
+                    on_progress,
+                    trace_state,
+                    stage="需求分析",
+                    stage_index=0,
+                    kind="warn",
+                    title="CLI 规划输出异常",
+                    detail=chunk,
+                    status="warning",
+                    progress=0.14,
+                )
+                return
+
+            buffered += chunk
+            while "\n" in buffered:
+                line, buffered = buffered.split("\n", 1)
+                content = line.strip()
+                if not content:
+                    continue
+                kind = "plan" if line_count == 1 or content[:2].isdigit() else "thinking"
+                title = "更新计划" if kind == "plan" else "技能规划"
+                await self._trace(
+                    on_progress,
+                    trace_state,
+                    stage="需求分析",
+                    stage_index=0,
+                    kind=kind,
+                    title=title,
+                    detail=content,
+                    progress=min(0.22, 0.10 + line_count * 0.02),
+                )
+                line_count += 1
+
+        tail = buffered.strip()
+        if tail:
+            await self._trace(
+                on_progress,
+                trace_state,
+                stage="需求分析",
+                stage_index=0,
+                kind="thinking",
+                title="技能规划",
+                detail=tail,
+                progress=0.22,
+            )
+
+    async def _generate_skill_spec(
+        self,
+        *,
+        requirement: str,
+        skill_name: str,
+        skill_id: str,
+        category: str,
+    ) -> dict[str, Any]:
+        default_spec = _build_default_skill_spec(
+            skill_name=skill_name,
+            skill_id=skill_id,
+            category=category,
+            requirement=requirement,
+        )
+        if settings.AGENT_DRIVER.lower() != "cli":
+            return default_spec
+
+        skill_context = _load_skill_creator_context()
+        driver = get_driver()
+        schema = {
+            "type": "object",
+            "properties": {
+                "display_name": {"type": "string"},
+                "canonical_name": {"type": "string"},
+                "category": {"type": "string"},
+                "short_description": {"type": "string"},
+                "assistant_summary": {"type": "string"},
+                "planning_steps": {"type": "array", "items": {"type": "string"}},
+                "skill_md_body": {"type": "string"},
+                "reference_files": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "path": {"type": "string"},
+                            "summary": {"type": "string"},
+                            "content": {"type": "string"},
+                        },
+                        "required": ["path", "summary", "content"],
+                    },
+                },
+            },
+            "required": [
+                "display_name",
+                "canonical_name",
+                "category",
+                "short_description",
+                "assistant_summary",
+                "planning_steps",
+                "skill_md_body",
+                "reference_files",
+            ],
+        }
+        prompt = (
+            f"请根据下面需求生成一个可执行技能包设计 JSON。\n\n"
+            f"技能 ID 固定为：{skill_id}\n"
+            f"技能显示名建议：{skill_name}\n"
+            f"分类建议：{category}\n"
+            f"用户需求：{requirement}\n\n"
+            "要求：\n"
+            "1. 必须输出适合 Codex/Claude 风格 SKILL 的正文内容，不包含 YAML frontmatter。\n"
+            "2. 必须给出 1-4 个 references/*.md 文件内容。\n"
+            "3. 不要输出 manifest.json。\n"
+            "4. 正文与参考资料均使用中文。\n\n"
+            f"skill-creator/SKILL.md:\n{skill_context.get('SKILL.md', '')}\n\n"
+            f"references/openai_yaml.md:\n{skill_context.get('references/openai_yaml.md', '')}\n"
+        )
+
+        try:
+            response = await driver.call(
+                prompt=prompt,
+                system="你是技能包设计师。只输出符合 schema 的 JSON。",
+                json_schema=schema,
+            )
+            payload = json.loads(response.content)
+            if isinstance(payload, dict):
+                return payload
+        except Exception:
+            pass
+        return default_spec
+
+    async def _write_skill_file(
+        self,
+        *,
+        on_progress: Optional[Any],
+        trace_state: dict[str, Any],
+        workspace_id: str,
+        root_rel: str,
+        rel_path: str,
+        content: str,
+        index: int,
+        total: int,
+    ) -> dict[str, Any]:
+        tool_id = f"write-{index + 1}"
+        tool_call_id = f"{tool_id}-{uuid.uuid4().hex[:8]}"
+        started_ms = int(time.time() * 1000)
+        display_path = f"/workspace/projects/{root_rel}/{rel_path}".replace("//", "/")
+
+        await self._trace(
+            on_progress,
+            trace_state,
+            stage="工具执行",
+            stage_index=1,
+            kind="tool_start",
+            title="创建文件",
+            detail=rel_path,
+            progress=0.42 + (index / max(total, 1)) * 0.28,
+            metrics={
+                "tool_id": tool_id,
+                "tool_call_id": tool_call_id,
+                "workspace_id": workspace_id,
+                "sandbox_id": workspace_id,
+                "cmd": f"write {rel_path}",
+                "started_at_ms": started_ms,
+            },
+        )
+
+        result = tool_execution_service.write_text_file(
+            workspace_id=workspace_id,
+            display_path=display_path,
+            content=content,
+            tool_call_id=tool_call_id,
+        )
+        for line in result.stdout_lines:
+            await self._trace(
+                on_progress,
+                trace_state,
+                stage="工具执行",
+                stage_index=1,
+                kind="tool_stdout",
+                title="创建文件输出",
+                detail=line,
+                progress=min(0.78, 0.44 + index * 0.03),
+                metrics={
+                    "tool_id": tool_id,
+                    "tool_call_id": tool_call_id,
+                    "workspace_id": workspace_id,
+                    "sandbox_id": workspace_id,
+                },
+            )
+
+        await self._trace(
+            on_progress,
+            trace_state,
+            stage="工具执行",
+            stage_index=1,
+            kind="tool_end",
+            title="文件创建完成",
+            detail=rel_path,
+            status="done" if result.status == "success" else "error",
+            progress=min(0.82, 0.46 + index * 0.03),
+            metrics={
+                "tool_id": tool_id,
+                "tool_call_id": tool_call_id,
+                "workspace_id": workspace_id,
+                "sandbox_id": workspace_id,
+                "exit_code": result.exit_code,
+                "duration_ms": result.duration_ms,
+                "started_at_ms": started_ms,
+                "finished_at_ms": result.finished_at_ms,
+                "artifacts": [{"op": "created", "path": display_path}],
+            },
+        )
+        await self._trace(
+            on_progress,
+            trace_state,
+            stage="工具执行",
+            stage_index=1,
+            kind="fs_change",
+            title="文件已创建",
+            detail=display_path,
+            status="done",
+            progress=min(0.84, 0.47 + index * 0.03),
+        )
+        return {
+            "name": Path(rel_path).name,
+            "path": display_path,
+            "summary": "file written",
+            "preview": content[:900] + ("…" if len(content) > 900 else ""),
+        }
+
     def _ensure_unique_skill_id(self, base_skill_id: str) -> str:
         candidate = base_skill_id
         index = 2
@@ -504,7 +1111,10 @@ class SkillCreatorAgent(BaseAgent):
         source = str(context.get("source", ""))
         workspace_id = str(context.get("workspace_id", "")).strip()
         run_id = str(context.get("run_id", "")).strip()
+        workspace = workspace_session_service.get(workspace_id) if workspace_id else None
+        creator_session_mode = str(context.get("creator_session_mode", "")).strip()
         enable_cli_draft = source in {"standalone", "skill_creator_ui", "chat"}
+        creator_session = workspace_session_service.get_creator_session_state(workspace_id) if workspace_id else {}
 
         trace_state = {"token": uuid.uuid4().hex[:10], "seq": 0}
 
@@ -520,27 +1130,166 @@ class SkillCreatorAgent(BaseAgent):
             progress=0.08,
         )
 
-        skill_name = _infer_skill_name(requirement)
+        conversation_messages = list(creator_session.get("messages", [])) if isinstance(creator_session.get("messages"), list) else []
+        if creator_session_mode == "continuation":
+            base_requirement = str(creator_session.get("base_requirement") or "").strip()
+            conversation_messages.append({"role": "user", "content": requirement})
+            requirement = "\n\n".join(
+                part for part in [
+                    base_requirement,
+                    "用户补充信息：",
+                    "\n".join(
+                        f"- {item.get('role')}: {item.get('content')}"
+                        for item in conversation_messages
+                        if isinstance(item, dict) and item.get("content")
+                    ),
+                ] if part
+            )
+        else:
+            conversation_messages = [{"role": "user", "content": requirement}]
+
+        skill_name = str(creator_session.get("skill_name") or _infer_skill_name(requirement)).strip() or _infer_skill_name(requirement)
         base_skill_id = _slugify(skill_name)
-        skill_id = self._ensure_unique_skill_id(base_skill_id)
-        category = _infer_category(requirement)
+        skill_id = str(creator_session.get("skill_id") or "").strip() or self._ensure_unique_skill_id(base_skill_id)
+        category = str(creator_session.get("category") or _infer_category(requirement)).strip() or _infer_category(requirement)
         llm_note = await self._build_llm_note(requirement, enable_cli_draft=enable_cli_draft)
 
-        await self._trace(
-            on_progress,
-            trace_state,
-            stage="需求分析",
-            stage_index=0,
-            kind="plan",
-            title="创建计划",
-            detail=(
-                "1) 初始化技能目录与运行脚本\n"
-                "2) 生成 manifest 与文档\n"
-                "3) 刷新技能注册并输出交付"
-            ),
-            status="done",
-            progress=0.16,
+        if creator_session_mode != "continuation":
+            clarification_decision = await self._decide_clarification(
+                requirement=requirement,
+                enable_cli_draft=enable_cli_draft,
+            )
+            needs_clarification = bool(clarification_decision.get("needs_clarification"))
+            questions = [
+                str(item).strip()
+                for item in clarification_decision.get("questions", [])
+                if str(item).strip()
+            ]
+            decision_reason = str(clarification_decision.get("reason") or "").strip()
+
+            if needs_clarification:
+                if workspace_id:
+                    workspace_session_service.update_creator_session_state(
+                        workspace_id,
+                        {
+                            "base_requirement": requirement,
+                            "messages": conversation_messages,
+                            "pending_questions": questions,
+                            "skill_name": skill_name,
+                            "skill_id": skill_id,
+                            "category": category,
+                        },
+                    )
+                if decision_reason:
+                    await self._trace(
+                        on_progress,
+                        trace_state,
+                        stage="需求分析",
+                        stage_index=0,
+                        kind="thinking",
+                        title="需求判断",
+                        detail=decision_reason,
+                        progress=0.16,
+                    )
+                await self._emit_clarification(
+                    on_progress=on_progress,
+                    trace_state=trace_state,
+                    questions=questions,
+                )
+                summary = "需要你确认一些信息后，才能继续创建技能。"
+                report = {
+                    "creator_state": "clarification_pending",
+                    "pending_questions": questions,
+                    "artifact_root": workspace.display_root if workspace else "",
+                    "artifact_tree": "",
+                    "delivery_notes": summary,
+                    "artifact_files": [],
+                    "preview_rows": [{"question": question} for question in questions],
+                    "columns": [{"key": "question", "label": "待确认问题", "type": "text"}],
+                    "total_count": len(questions),
+                }
+                if workspace_id:
+                    workspace_session_service.record_creator_result(
+                        workspace_id=workspace_id,
+                        run_id=run_id,
+                        result={
+                            "task_id": run_id,
+                            "run_id": run_id,
+                            "summary": summary,
+                            "metadata": {"creator_state": "clarification_pending"},
+                            **report,
+                        },
+                    )
+                return AgentResult(summary=summary, report=report, metadata={"creator_state": "clarification_pending"})
+
+            if workspace_id:
+                workspace_session_service.update_creator_session_state(
+                    workspace_id,
+                    {
+                        "base_requirement": requirement,
+                        "messages": conversation_messages,
+                        "pending_questions": [],
+                        "skill_name": skill_name,
+                        "skill_id": skill_id,
+                        "category": category,
+                    },
+                )
+            if decision_reason:
+                await self._trace(
+                    on_progress,
+                    trace_state,
+                    stage="需求分析",
+                    stage_index=0,
+                    kind="thinking",
+                    title="需求判断",
+                    detail=decision_reason,
+                    progress=0.16,
+                )
+
+        if workspace_id:
+            workspace_session = workspace_session_service.get_creator_session_state(workspace_id)
+            workspace_session.update(
+                {
+                    "messages": conversation_messages,
+                    "pending_questions": [],
+                    "skill_name": skill_name,
+                    "skill_id": skill_id,
+                    "category": category,
+                }
+            )
+            workspace_session_service.update_creator_session_state(workspace_id, workspace_session)
+
+        await self._stream_cli_plan(
+            requirement=requirement,
+            on_progress=on_progress,
+            trace_state=trace_state,
         )
+
+        spec = await self._generate_skill_spec(
+            requirement=requirement,
+            skill_name=skill_name,
+            skill_id=skill_id,
+            category=category,
+        )
+        skill_name = str(spec.get("display_name") or skill_name).strip() or skill_name
+        category = str(spec.get("category") or category).strip() or category
+        short_description = str(spec.get("short_description") or requirement[:48]).strip() or skill_name
+        planning_steps = [str(item).strip() for item in spec.get("planning_steps", []) if str(item).strip()]
+        assistant_summary = str(spec.get("assistant_summary") or "").strip()
+
+        if planning_steps:
+            for index, step in enumerate(planning_steps):
+                await self._trace(
+                    on_progress,
+                    trace_state,
+                    stage="需求分析",
+                    stage_index=0,
+                    kind="plan",
+                    title="更新计划",
+                    detail=step,
+                    progress=min(0.24, 0.16 + index * 0.02),
+                )
+
         await self._trace(
             on_progress,
             trace_state,
@@ -550,265 +1299,221 @@ class SkillCreatorAgent(BaseAgent):
             title="需求分析完成",
             detail=f"技能名: {skill_name}，skill_id: {skill_id}，分类: {category}",
             status="done",
-            progress=0.22,
+            progress=0.24,
         )
-        await self._progress(on_progress, "需求分析", 0.25, "需求分析完成")
+        await self._progress(on_progress, "需求分析", 0.26, "需求分析完成")
+
+        icon_pool = [
+            "Shield",
+            "Alert",
+            "TrendUp",
+            "Brain",
+            "Network",
+            "Briefcase",
+            "Database",
+            "Globe",
+            "Pulse",
+            "BarChart",
+            "Doc",
+            "Table",
+        ]
+        color_pool = [
+            "#3B82F6",
+            "#8B5CF6",
+            "#EC4899",
+            "#F59E0B",
+            "#06B6D4",
+            "#EF4444",
+            "#F97316",
+            "#6366F1",
+            "#14B8A6",
+        ]
+        icon_rng = random.Random(skill_id)
+        skill_icon = icon_rng.choice(icon_pool)
+        skill_accent = icon_rng.choice(color_pool)
 
         root_rel = skill_id
         root_real = (skill_creator_workspace.user_generated_root / root_rel).resolve()
-        root_real.mkdir(parents=True, exist_ok=True)
         root_virtual = virtual_fs.to_virtual(root_real)
         artifact_root = root_virtual
-        display_root = ""
+        display_root = workspace.display_root if workspace_id and workspace else ""
 
-        if workspace_id:
-            try:
-                record = workspace_session_service.attach_skill_root(workspace_id, skill_id)
-                display_root = record.display_root
-                artifact_root = display_root
-            except Exception:
-                display_root = ""
+        await self._progress(on_progress, "工具执行", 0.34, "开始初始化标准技能包")
 
-        await self._progress(on_progress, "工具执行", 0.34, "开始创建技能目录与文件")
+        init_script = Path(__file__).resolve().parents[2] / "skills_assets" / "skill-creator" / "scripts" / "init_skill.py"
+        generate_yaml_script = Path(__file__).resolve().parents[2] / "skills_assets" / "skill-creator" / "scripts" / "generate_openai_yaml.py"
+        quick_validate_script = Path(__file__).resolve().parents[2] / "skills_assets" / "skill-creator" / "scripts" / "quick_validate.py"
 
-        if workspace_id and display_root:
-            await self._run_workspace_command(
+        if workspace_id and workspace:
+            init_result = await self._run_workspace_command(
                 on_progress,
                 trace_state,
                 workspace_id=workspace_id,
                 run_id=run_id,
                 stage="工具执行",
                 stage_index=1,
-                tool_id="mkdir-1",
-                command=["bash", "-lc", "mkdir -p scripts references outputs"],
-                cwd_display=display_root,
-                progress=0.36,
-            )
-        else:
-            skill_creator_workspace.mkdir_p(f"{root_rel}/scripts")
-            skill_creator_workspace.mkdir_p(f"{root_rel}/references")
-            skill_creator_workspace.mkdir_p(f"{root_rel}/outputs")
-            await self._trace(
-                on_progress,
-                trace_state,
-                stage="工具执行",
-                stage_index=1,
-                kind="tool_end",
-                title="工具结束 mkdir_p",
-                detail=f"已创建目录 {root_rel}/scripts references outputs",
-                status="done",
+                tool_id="init-skill",
+                command=[
+                    "python3",
+                    str(init_script),
+                    skill_id,
+                    "--path",
+                    str(skill_creator_workspace.user_generated_root),
+                    "--resources",
+                    "scripts,references",
+                    "--interface",
+                    f"display_name={skill_name}",
+                    "--interface",
+                    f"short_description={short_description}",
+                ],
+                cwd_display=workspace.display_root,
                 progress=0.38,
             )
+            if not init_result.ok:
+                raise RuntimeError("标准技能包脚手架初始化失败")
+            record = workspace_session_service.attach_skill_root(workspace_id, skill_id)
+            display_root = record.display_root
+            artifact_root = display_root
+            workspace_session_service.publish_fs_snapshot(workspace_id)
+        else:
+            root_real.mkdir(parents=True, exist_ok=True)
 
-        manifest = {
-            "id": skill_id,
-            "version": "1.0.0",
-            "name": skill_name.replace("技能", "") or skill_name,
-            "display_name": skill_name,
-            "description": requirement[:140],
-            "category": category,
-            "status": "ready",
-            "author": "@SkillCreator",
-            "tags": ["用户创建", category, "MVP"],
-            "entrypoints": {
-                "standalone": True,
-                "chat_invoke": True,
-                "external_api": True,
-            },
-            "triggers": {
-                "mention_ids": [skill_id],
-                "mention_aliases": [skill_name],
-            },
-            "execution": {
-                "mode": "agent_workflow",
-                "agent_id": "generated-skill-runtime",
-                "driver": "generated-runtime",
-            },
-            "entrypoint": "python3 scripts/run.py",
-            "input_schema": {
-                "type": "object",
-                "required": ["query"],
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "title": "调用内容",
-                        "description": "输入希望技能处理的请求",
-                    }
-                },
-            },
-            "output_schema": {
-                "type": "object",
-                "required": ["summary", "preview_rows", "total_count"],
-                "properties": {
-                    "summary": {"type": "string"},
-                    "preview_rows": {"type": "array"},
-                    "total_count": {"type": "integer"},
-                },
-            },
-            "permissions": ["skill:generated.execute", "chat:invoke"],
-            "ui": {
-                "theme_accent": "#22C55E",
-                "stages": ["需求解析", "规则执行", "结果整理"],
-                "chat_card": {
-                    "show_fields": ["query"],
-                    "allow_file_upload": False,
-                },
-                "standalone": {
-                    "show_trace": True,
-                    "show_export": False,
-                },
-            },
-            "icon": "Sparkle",
-            "cover": "custom",
-            "source": "builder",
-        }
+        frontmatter = _build_skill_frontmatter(
+            skill_name=skill_name,
+            skill_id=skill_id,
+            category=category,
+            requirement=requirement,
+            short_description=short_description,
+            icon=skill_icon,
+            accent=skill_accent,
+        )
 
-        file_specs: list[tuple[str, str, str]] = [
-            ("manifest.json", f"{root_rel}/manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2)),
-            ("SKILL.md", f"{root_rel}/SKILL.md", _build_skill_md(skill_name, skill_id, category, requirement, llm_note)),
-            ("scripts/validate_input.py", f"{root_rel}/scripts/validate_input.py", _build_validate_script()),
-            ("scripts/run.py", f"{root_rel}/scripts/run.py", _build_run_script()),
-            ("scripts/format_output.py", f"{root_rel}/scripts/format_output.py", _build_format_script()),
-            ("references/usage.md", f"{root_rel}/references/usage.md", _build_reference_md(skill_name, skill_id)),
-        ]
+        skill_md_body = str(spec.get("skill_md_body") or _build_default_skill_spec(
+            skill_name=skill_name,
+            skill_id=skill_id,
+            category=category,
+            requirement=requirement,
+        )["skill_md_body"])
 
-        artifact_files: list[dict[str, Any]] = []
-        for idx, (label, rel_path, content) in enumerate(file_specs):
-            tool_id = f"write-{idx+1}"
-            tool_call_id = f"{tool_id}-{uuid.uuid4().hex[:8]}"
-            started_ms = int(time.time() * 1000)
-            await self._trace(
-                on_progress,
-                trace_state,
-                stage="工具执行",
-                stage_index=1,
-                kind="tool_start",
-                title="调用工具 write_text_file",
-                detail=f"create {rel_path}",
-                progress=0.42 + idx * 0.05,
-                metrics={
-                    "tool_id": tool_id,
-                    "tool_call_id": tool_call_id,
-                    "workspace_id": workspace_id or "",
-                    "sandbox_id": workspace_id or "",
-                    "cmd": f"create {rel_path}",
-                    "started_at_ms": started_ms,
-                },
-            )
-            real_path = skill_creator_workspace.user_generated_root / rel_path
-            display_path = rel_path
-            bytes_count = len(content.encode("utf-8"))
+        normalized_reference_files: list[dict[str, str]] = []
+        for item in spec.get("reference_files", []):
+            if not isinstance(item, dict):
+                continue
+            path = str(item.get("path", "")).strip()
+            summary = str(item.get("summary", "")).strip() or "参考资料"
+            content = str(item.get("content", "")).strip()
+            if not path or not content:
+                continue
+            if not path.startswith("references/") or not path.endswith(".md"):
+                continue
+            normalized_reference_files.append({"path": path, "summary": summary, "content": content + "\n"})
 
-            if workspace_id and display_root:
-                display_path = f"{display_root}/{rel_path[len(root_rel):].strip('/')}"
-                tool_result = tool_execution_service.write_text_file(
-                    workspace_id=workspace_id,
-                    display_path=display_path,
-                    content=content,
-                    tool_call_id=tool_call_id,
-                )
-                write_ok = tool_result.status == "success"
-                for line in tool_result.stdout_lines:
-                    await self._trace(
-                        on_progress,
-                        trace_state,
-                        stage="工具执行",
-                        stage_index=1,
-                        kind="tool_stdout",
-                        title="write_text_file stdout",
-                        detail=line,
-                        progress=min(0.86, 0.43 + idx * 0.05),
-                        metrics={
-                            "tool_id": tool_id,
-                            "tool_call_id": tool_call_id,
-                            "workspace_id": workspace_id,
-                            "sandbox_id": workspace_id,
-                        },
-                    )
-                result_detail = "file written"
-            else:
-                fs_result = skill_creator_workspace.write_text_file(rel_path, content)
-                write_ok = fs_result.ok
-                result_detail = fs_result.detail
-                await self._trace(
-                    on_progress,
-                    trace_state,
-                    stage="工具执行",
-                    stage_index=1,
-                    kind="tool_stdout",
-                    title="write_text_file stdout",
-                    detail=f"file written: {rel_path}",
-                    progress=min(0.86, 0.43 + idx * 0.05),
-                    metrics={
-                        "tool_id": tool_id,
-                        "tool_call_id": tool_call_id,
-                    },
-                )
-                await self._trace(
-                    on_progress,
-                    trace_state,
-                    stage="工具执行",
-                    stage_index=1,
-                    kind="tool_stdout",
-                    title="write_text_file stdout",
-                    detail=f"bytes: {bytes_count}",
-                    progress=min(0.86, 0.43 + idx * 0.05),
-                    metrics={
-                        "tool_id": tool_id,
-                        "tool_call_id": tool_call_id,
-                    },
-                )
-
-            await self._trace(
-                on_progress,
-                trace_state,
-                stage="工具执行",
-                stage_index=1,
-                kind="tool_end",
-                title="工具结束 write_text_file",
-                detail=f"{result_detail}: {rel_path}",
-                status="done" if write_ok else "warning",
-                progress=0.44 + idx * 0.05,
-                metrics={
-                    "tool_id": tool_id,
-                    "tool_call_id": tool_call_id,
-                    "workspace_id": workspace_id or "",
-                    "sandbox_id": workspace_id or "",
-                    "exit_code": 0 if write_ok else 1,
-                    "bytes": bytes_count,
-                    "started_at_ms": started_ms,
-                    "finished_at_ms": int(time.time() * 1000),
-                    "duration_ms": max(0, int(time.time() * 1000) - started_ms),
-                    "artifacts": [{"op": "created", "path": display_path}],
-                },
-            )
-            if workspace_id:
-                workspace_session_service.emit_fs_changed_real(workspace_id, op="created", real_path=real_path)
-                display_path = workspace_session_service.real_to_display_path(workspace_id, real_path)
-
-            await self._trace(
-                on_progress,
-                trace_state,
-                stage="工具执行",
-                stage_index=1,
-                kind="fs_change",
-                title=f"文件已创建 {label}",
-                detail=display_path,
-                status="done",
-                progress=0.45 + idx * 0.05,
-            )
-
-            artifact_files.append(
+        if not normalized_reference_files:
+            normalized_reference_files.append(
                 {
-                    "name": label,
-                    "path": display_path,
-                    "summary": result_detail,
-                    "preview": content[:900] + ("…" if len(content) > 900 else ""),
+                    "path": "references/usage.md",
+                    "summary": "技能使用说明",
+                    "content": _build_reference_md(skill_name, skill_id),
                 }
             )
 
-        if workspace_id:
+        file_specs = [
+            ("SKILL.md", "SKILL.md", _build_skill_md(frontmatter, skill_md_body)),
+            ("scripts/validate_input.py", "scripts/validate_input.py", _build_validate_script()),
+            ("scripts/run.py", "scripts/run.py", _build_run_script()),
+            ("scripts/format_output.py", "scripts/format_output.py", _build_format_script()),
+        ]
+        for item in normalized_reference_files:
+            file_specs.append((Path(item["path"]).name, item["path"], item["content"]))
+
+        artifact_files: list[dict[str, Any]] = []
+        if workspace_id and display_root:
+            for index, (label, rel_path, content) in enumerate(file_specs):
+                artifact_files.append(
+                    await self._write_skill_file(
+                        on_progress=on_progress,
+                        trace_state=trace_state,
+                        workspace_id=workspace_id,
+                        root_rel=root_rel,
+                        rel_path=rel_path,
+                        content=content,
+                        index=index,
+                        total=len(file_specs),
+                    )
+                )
+
+            yaml_result = await self._run_workspace_command(
+                on_progress,
+                trace_state,
+                workspace_id=workspace_id,
+                run_id=run_id,
+                stage="工具执行",
+                stage_index=1,
+                tool_id="generate-ui-meta",
+                command=[
+                    "python3",
+                    str(generate_yaml_script),
+                    ".",
+                    "--interface",
+                    f"display_name={skill_name}",
+                    "--interface",
+                    f"short_description={short_description}",
+                ],
+                cwd_display=display_root,
+                progress=0.78,
+            )
+            if not yaml_result.ok:
+                artifact_files.append(
+                    await self._write_skill_file(
+                        on_progress=on_progress,
+                        trace_state=trace_state,
+                        workspace_id=workspace_id,
+                        root_rel=root_rel,
+                        rel_path="agents/openai.yaml",
+                        content=_build_openai_yaml(skill_name, short_description),
+                        index=len(file_specs),
+                        total=len(file_specs) + 1,
+                    )
+                )
+
+            openai_yaml_path = root_real / "agents" / "openai.yaml"
+            if openai_yaml_path.exists():
+                artifact_files.append(
+                    {
+                        "name": "openai.yaml",
+                        "path": f"{display_root}/agents/openai.yaml",
+                        "summary": "ui metadata generated",
+                        "preview": openai_yaml_path.read_text(encoding="utf-8")[:900],
+                    }
+                )
+
+            validate_result = await self._run_workspace_command(
+                on_progress,
+                trace_state,
+                workspace_id=workspace_id,
+                run_id=run_id,
+                stage="工具执行",
+                stage_index=1,
+                tool_id="validate-skill",
+                command=[
+                    "python3",
+                    str(quick_validate_script),
+                    ".",
+                ],
+                cwd_display=display_root,
+                progress=0.84,
+            )
+            if not validate_result.ok:
+                raise RuntimeError("标准技能包校验失败")
             workspace_session_service.publish_fs_snapshot(workspace_id)
+        else:
+            root_real.mkdir(parents=True, exist_ok=True)
+            skill_creator_workspace.mkdir_p(f"{root_rel}/scripts")
+            skill_creator_workspace.mkdir_p(f"{root_rel}/references")
+            skill_creator_workspace.mkdir_p(f"{root_rel}/outputs")
+            skill_creator_workspace.mkdir_p(f"{root_rel}/agents")
+            for _label, rel_path, content in file_specs:
+                skill_creator_workspace.write_text_file(f"{root_rel}/{rel_path}", content)
 
         await self._trace(
             on_progress,
@@ -817,21 +1522,19 @@ class SkillCreatorAgent(BaseAgent):
             stage_index=1,
             kind="thinking",
             title="刷新技能目录索引",
-            detail="重新加载 manifest 并刷新 @ 技能触发索引。",
-            progress=0.80,
+            detail="重新加载 SKILL.md 目录索引，并刷新 @ 技能触发映射。",
+            progress=0.88,
         )
         manifest_registry.reload()
         skill_mention_parser.reload()
-        await self._progress(on_progress, "工具执行", 0.84, "文件创建完成，已刷新技能注册")
+        await self._progress(on_progress, "工具执行", 0.90, "标准技能包创建完成，已刷新技能注册")
 
         tree_result = skill_creator_workspace.list_tree(root_rel)
 
-        await self._progress(on_progress, "交付整理", 0.90, "正在整理交付说明")
+        await self._progress(on_progress, "交付整理", 0.94, "正在整理交付说明")
         root_label = display_root or root_virtual
-        delivery_notes = (
-            f"已完成技能 `{skill_name}` 创建，并写入目录 `{root_label}`。\n"
-            f"可在聊天中通过 `@{skill_id}` 触发；技能广场将自动展示该技能。"
-        )
+        delivery_notes = assistant_summary or f"已完成技能 `{skill_name}` 创建，并写入目录 `{root_label}`。"
+        delivery_notes += f"\n\n可在聊天中通过 `@{skill_id}` 触发；技能广场将自动展示该技能。"
         if llm_note.strip():
             delivery_notes += f"\n\nCLI 建议摘录：\n{llm_note.strip()}"
 
@@ -842,14 +1545,14 @@ class SkillCreatorAgent(BaseAgent):
             stage_index=2,
             kind="delivery",
             title="交付整理完成",
-            detail="输出目录树、关键文件与使用说明。",
+            detail=delivery_notes,
             status="done",
-            progress=0.98,
+            progress=0.99,
         )
         await self._progress(on_progress, "交付整理", 1.0, "技能创建完成")
 
         elapsed = round(time.time() - started, 3)
-        summary = f"已成功创建技能 {skill_name}（{skill_id}），可立即在技能广场与 @ 对话中使用。"
+        summary = assistant_summary or f"已成功创建技能 {skill_name}（{skill_id}），可立即在技能广场与 @ 对话中使用。"
 
         report = {
             "created_skill_id": skill_id,
@@ -890,6 +1593,7 @@ class SkillCreatorAgent(BaseAgent):
                     **report,
                 },
             )
+            workspace_session_service.clear_creator_session_state(workspace_id)
 
         return AgentResult(
             summary=summary,

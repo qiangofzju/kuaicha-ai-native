@@ -265,3 +265,80 @@ class ClaudeCodeCLIDriver(BaseDriver):
         except Exception as exc:
             logger.exception("Unexpected error in ClaudeCodeCLIDriver.call_streaming")
             yield f"[Error] {exc}"
+
+    async def call_streaming_events(
+        self, prompt: str, system: str = ""
+    ) -> AsyncGenerator[dict, None]:
+        """Stream parsed ``stream-json`` events from ``claude -p``."""
+        cmd = self._build_cmd(prompt, system=system, output_format="stream-json")
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=self.env,
+            )
+
+            assert proc.stdout is not None
+            decoder = codecs.getincrementaldecoder("utf-8")("replace")
+            text_buffer = ""
+
+            async def emit_line(line_text: str) -> AsyncGenerator[dict, None]:
+                text = line_text.strip()
+                if not text:
+                    return
+                try:
+                    data = json.loads(text)
+                except json.JSONDecodeError:
+                    yield {"kind": "raw_text", "text": text}
+                    return
+
+                msg_type = data.get("type", "")
+                if msg_type == "content_block_delta":
+                    delta = data.get("delta", {})
+                    if delta.get("type") == "text_delta":
+                        chunk = delta.get("text", "")
+                        if chunk:
+                            yield {"kind": "text_delta", "text": chunk, "raw": data}
+                            return
+                elif msg_type == "assistant":
+                    message = data.get("message", data)
+                    content = message.get("content", "")
+                    if isinstance(content, list):
+                        for block in content:
+                            if isinstance(block, dict) and block.get("type") == "text":
+                                block_text = block.get("text", "")
+                                if block_text:
+                                    yield {"kind": "assistant_text", "text": block_text, "raw": data}
+                        return
+                    if isinstance(content, str) and content:
+                        yield {"kind": "assistant_text", "text": content, "raw": data}
+                        return
+
+                yield {"kind": "raw_event", "type": msg_type, "raw": data}
+
+            while True:
+                chunk = await proc.stdout.read(65536)
+                if not chunk:
+                    break
+
+                text_buffer += decoder.decode(chunk)
+                lines = text_buffer.split("\n")
+                text_buffer = lines.pop() if lines else ""
+
+                for line in lines:
+                    async for event in emit_line(line):
+                        yield event
+
+            text_buffer += decoder.decode(b"", final=True)
+            if text_buffer.strip():
+                async for event in emit_line(text_buffer):
+                    yield event
+
+            await proc.wait()
+        except FileNotFoundError:
+            yield {"kind": "error", "text": "claude CLI binary not found"}
+        except Exception as exc:
+            logger.exception("Unexpected error in ClaudeCodeCLIDriver.call_streaming_events")
+            yield {"kind": "error", "text": str(exc)}

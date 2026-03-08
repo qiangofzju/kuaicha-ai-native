@@ -36,6 +36,7 @@ class WorkspaceSessionRecord:
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     creator_result_latest: dict[str, Any] | None = None
     creator_result_by_run: dict[str, dict[str, Any]] = field(default_factory=dict)
+    creator_session_state: dict[str, Any] = field(default_factory=dict)
     run_session_ids: list[str] = field(default_factory=list)
     init_task: asyncio.Task | None = None
 
@@ -490,11 +491,31 @@ class WorkspaceSessionService:
         record = self.get(workspace_id)
         if record is None:
             return None
-        if run_id and run_id in record.creator_result_by_run:
-            return dict(record.creator_result_by_run[run_id])
+        if run_id:
+            if run_id in record.creator_result_by_run:
+                return dict(record.creator_result_by_run[run_id])
+            return None
         if record.creator_result_latest is not None:
             return dict(record.creator_result_latest)
         return None
+
+    def get_creator_session_state(self, workspace_id: str) -> dict[str, Any]:
+        record = self.get(workspace_id)
+        if record is None:
+            return {}
+        return dict(record.creator_session_state)
+
+    def update_creator_session_state(self, workspace_id: str, data: dict[str, Any]) -> None:
+        record = self.get(workspace_id)
+        if record is None:
+            return
+        record.creator_session_state = dict(data)
+
+    def clear_creator_session_state(self, workspace_id: str) -> None:
+        record = self.get(workspace_id)
+        if record is None:
+            return
+        record.creator_session_state = {}
 
 
 workspace_session_service = WorkspaceSessionService()
