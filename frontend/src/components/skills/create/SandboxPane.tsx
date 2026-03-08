@@ -94,6 +94,8 @@ export function SandboxPane({
   onPlaygroundRun,
   onPlaygroundCancel,
 }: SandboxPaneProps) {
+  const statusLabel = workspaceStatus === "ready" ? "ready" : workspaceStatus === "failed" ? "failed" : "initializing";
+
   return (
     <section
       className="h-full min-h-[720px] rounded-2xl border overflow-hidden flex flex-col"
@@ -103,23 +105,6 @@ export function SandboxPane({
         boxShadow: "var(--card-inset), var(--shadow-mid)",
       }}
     >
-      <header className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[14px] text-white/86 font-medium">Sandbox Workspace</h2>
-          <p className="text-[12px] text-white/42 mt-1">{displayRoot || "/workspace/projects"}</p>
-        </div>
-        <span
-          className="text-[11px] px-2 py-1 rounded-md border"
-          style={{
-            borderColor: workspaceStatus === "ready" ? "rgba(16,185,129,0.35)" : workspaceStatus === "failed" ? "rgba(239,68,68,0.35)" : "rgba(74,158,255,0.35)",
-            color: workspaceStatus === "ready" ? "#34D399" : workspaceStatus === "failed" ? "#F87171" : "#60A5FA",
-            background: workspaceStatus === "ready" ? "rgba(16,185,129,0.12)" : workspaceStatus === "failed" ? "rgba(239,68,68,0.12)" : "rgba(74,158,255,0.12)",
-          }}
-        >
-          {workspaceStatus === "ready" ? "ready" : workspaceStatus === "failed" ? "failed" : "initializing"}
-        </span>
-      </header>
-
       {workspaceStatus !== "ready" && (
         <div className="flex-1 p-5">
           <div className="h-full rounded-xl border border-white/[0.08] bg-black/45 p-4 overflow-y-auto font-mono text-[12px] space-y-2">
@@ -135,7 +120,8 @@ export function SandboxPane({
 
       {workspaceStatus === "ready" && (
         <>
-          <div className="px-4 py-2.5 border-b border-white/[0.08] flex items-center gap-2">
+          <div className="px-4 py-2.5 border-b border-white/[0.08] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
             {(["files", "terminal", "playground"] as SandboxTab[]).map((tab) => {
               const disabled = tab === "playground" && !playgroundEnabled;
               return (
@@ -155,6 +141,20 @@ export function SandboxPane({
                 </button>
               );
             })}
+            </div>
+            <div className="flex min-w-0 items-center gap-2 text-[11px] text-white/40">
+              <span className="truncate max-w-[260px]">{displayRoot || "/workspace/projects"}</span>
+              <span
+                className="shrink-0 rounded-md border px-2 py-1"
+                style={{
+                  borderColor: workspaceStatus === "ready" ? "rgba(16,185,129,0.35)" : workspaceStatus === "failed" ? "rgba(239,68,68,0.35)" : "rgba(74,158,255,0.35)",
+                  color: workspaceStatus === "ready" ? "#34D399" : workspaceStatus === "failed" ? "#F87171" : "#60A5FA",
+                  background: workspaceStatus === "ready" ? "rgba(16,185,129,0.12)" : workspaceStatus === "failed" ? "rgba(239,68,68,0.12)" : "rgba(74,158,255,0.12)",
+                }}
+              >
+                {statusLabel}
+              </span>
+            </div>
           </div>
 
           <div className="flex-1 min-h-0">

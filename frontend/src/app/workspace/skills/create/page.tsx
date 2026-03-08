@@ -34,6 +34,23 @@ function normalizeResult(data: unknown): SkillCreatorResult | null {
   };
 }
 
+function parseClarificationPayload(data: unknown): { summary?: string; pendingQuestions: string[] } | null {
+  if (!data || typeof data !== "object") return null;
+  const payload = data as Record<string, unknown>;
+  const metadata = payload.metadata && typeof payload.metadata === "object"
+    ? (payload.metadata as Record<string, unknown>)
+    : {};
+  const creatorState = payload.creator_state ?? metadata.creator_state;
+  if (creatorState !== "clarification_pending") return null;
+  const pendingQuestions = Array.isArray(payload.pending_questions)
+    ? payload.pending_questions.map((item) => String(item))
+    : [];
+  return {
+    summary: typeof payload.summary === "string" ? payload.summary : undefined,
+    pendingQuestions,
+  };
+}
+
 function parseCreatedSkillFromTraces(traceEvents: SkillTraceEvent[]): { skillId?: string; skillName?: string } {
   for (let i = traceEvents.length - 1; i >= 0; i -= 1) {
     const detail = traceEvents[i]?.detail || "";
@@ -65,6 +82,9 @@ export default function CreateSkillPage() {
 
   const phase = useSkillCreatorStore((s) => s.phase);
   const prompt = useSkillCreatorStore((s) => s.prompt);
+  const creatorMode = useSkillCreatorStore((s) => s.creatorMode);
+  const conversationTurns = useSkillCreatorStore((s) => s.conversationTurns);
+  const awaitingUserReply = useSkillCreatorStore((s) => s.awaitingUserReply);
   const workspace = useSkillCreatorStore((s) => s.workspace);
   const workspaceStatus = useSkillCreatorStore((s) => s.workspaceStatus);
   const sandboxLogs = useSkillCreatorStore((s) => s.sandboxLogs);
@@ -94,9 +114,11 @@ export default function CreateSkillPage() {
   const saveOpenFile = useSkillCreatorStore((s) => s.saveOpenFile);
 
   const startCreation = useSkillCreatorStore((s) => s.startCreation);
+  const continueCreation = useSkillCreatorStore((s) => s.continueCreation);
   const updateProgress = useSkillCreatorStore((s) => s.updateProgress);
   const appendTrace = useSkillCreatorStore((s) => s.appendTrace);
   const completeWithResult = useSkillCreatorStore((s) => s.completeWithResult);
+  const enterClarification = useSkillCreatorStore((s) => s.enterClarification);
   const failWithMessage = useSkillCreatorStore((s) => s.failWithMessage);
 
   const setPlaygroundQuery = useSkillCreatorStore((s) => s.setPlaygroundQuery);
@@ -195,14 +217,17 @@ export default function CreateSkillPage() {
     void startCreation(prompt.trim());
   }, [workspaceStatus, prompt, startCreation]);
 
-  const resolveCreatorResult = useCallback(async (currentRunId: string): Promise<SkillCreatorResult | null> => {
+  const resolveCreatorResult = useCallback(async (currentRunId: string): Promise<SkillCreatorResult | { clarification: { summary?: string; pendingQuestions: string[] } } | null> => {
     let lastError: unknown = null;
     for (let attempt = 0; attempt < 10; attempt += 1) {
       try {
         const payload = await skillService.getRunResult(currentRunId);
+        const clarification = parseClarificationPayload(payload);
+        if (clarification) return { clarification };
         const normalized = normalizeResult(payload);
         if (normalized) return normalized;
-        return payload as SkillCreatorResult;
+        await sleep(220 * (attempt + 1));
+        continue;
       } catch (err) {
         lastError = err;
         if (err instanceof ApiError && (err.status === 202 || err.status === 404)) {
@@ -217,6 +242,8 @@ export default function CreateSkillPage() {
       try {
         const fallback = await workspaceService.getCreatorResult(workspace.workspace_id, currentRunId);
         if (fallback.found && fallback.result) {
+          const clarification = parseClarificationPayload(fallback.result);
+          if (clarification) return { clarification };
           const normalized = normalizeResult(fallback.result);
           if (normalized) return normalized;
         }
@@ -260,6 +287,8 @@ export default function CreateSkillPage() {
     if (!runId || phase !== "building_skill") return;
 
     let cancelled = false;
+    let finishing = false;
+    let finished = false;
 
     if (buildWsRef.current) {
       buildWsRef.current.close();
@@ -270,12 +299,27 @@ export default function CreateSkillPage() {
     buildWsRef.current = ws;
 
     const finish = async () => {
-      if (cancelled) return;
+      if (cancelled || finished || finishing) return;
+      finishing = true;
       const resolved = await resolveCreatorResult(runId);
+      finishing = false;
+      if (cancelled || finished) return;
       if (resolved) {
+        if ("clarification" in resolved) {
+          finished = true;
+          enterClarification(resolved.clarification);
+          return;
+        }
+        if (!resolved.created_skill_id || !resolved.created_skill_name) {
+          await sleep(250);
+          void finish();
+          return;
+        }
+        finished = true;
         completeWithResult(resolved);
         setActiveSandboxTab("playground");
       } else {
+        finished = true;
         failWithMessage("创建记录已结束，但未能恢复交付结果，请重新创建。");
       }
     };
@@ -348,7 +392,7 @@ export default function CreateSkillPage() {
         buildWsRef.current = null;
       }
     };
-  }, [appendTrace, completeWithResult, failWithMessage, phase, resolveCreatorResult, runId, updateProgress]);
+  }, [appendTrace, completeWithResult, enterClarification, failWithMessage, phase, resolveCreatorResult, runId, updateProgress]);
 
   useEffect(() => {
     const activeRunId = playground.activeRunId;
@@ -478,17 +522,13 @@ export default function CreateSkillPage() {
     const nextPrompt = composerInput.trim();
     if (!nextPrompt) return;
     setPrompt(nextPrompt);
-
-    if (status === "running" && runId) {
-      try {
-        await skillService.cancelRun(runId);
-      } catch {
-        // ignore
-      }
-      await sleep(220);
-    }
-
+    setComposerInput("");
     autoStartedRef.current = true;
+    if (creatorMode === "clarification_pending" || awaitingUserReply) {
+      await continueCreation(nextPrompt);
+      setActiveSandboxTab("terminal");
+      return;
+    }
     await startCreation(nextPrompt);
     setActiveSandboxTab("terminal");
   };
@@ -500,7 +540,7 @@ export default function CreateSkillPage() {
 
   return (
     <div className="h-full overflow-y-auto px-6 pb-8 pt-5 animate-fadeIn">
-      <div className="max-w-[1600px] mx-auto space-y-5">
+      <div className="max-w-[1600px] mx-auto space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <Link href="/workspace/skills" className="inline-flex items-center gap-1.5 text-[12px] text-white/45 hover:text-white/65">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -510,11 +550,6 @@ export default function CreateSkillPage() {
           </Link>
 
           <span className="text-[12px] text-white/52">{pageStateHint}</span>
-        </div>
-
-        <div className="rounded-2xl border border-white/[0.1] bg-white/[0.02] p-5">
-          <h1 className="text-[22px] text-white/92 font-semibold">技能创建工作台 2.0</h1>
-          <p className="text-[13px] text-white/45 mt-2">左侧流式创建，右侧沙盒工作区联动；创建完成后可直接在同一沙盒会话运行技能。</p>
         </div>
 
         {error && (
@@ -527,6 +562,8 @@ export default function CreateSkillPage() {
           left={(
             <BuilderChatPane
               prompt={prompt}
+              conversationTurns={conversationTurns}
+              awaitingUserReply={awaitingUserReply}
               traceEvents={traceEvents}
               inputValue={composerInput}
               running={status === "running"}

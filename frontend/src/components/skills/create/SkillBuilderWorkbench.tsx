@@ -40,7 +40,7 @@ export function SkillBuilderWorkbench({ left, right }: SkillBuilderWorkbenchProp
   );
 
   return (
-    <div className="grid gap-0 h-[calc(100vh-188px)] min-h-[720px]" style={style}>
+    <div className="grid gap-0 h-[calc(100vh-132px)] min-h-[720px]" style={style}>
       <div className="min-w-0 min-h-0">{left}</div>
 
       <button

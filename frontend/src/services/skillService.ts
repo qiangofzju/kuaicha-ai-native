@@ -27,6 +27,11 @@ export const skillService = {
       body: JSON.stringify(payload),
     }),
 
+  deleteSkill: (skillId: string) =>
+    apiFetch<{ skill_id: string; status: string; message: string }>(`/api/skills/${skillId}`, {
+      method: "DELETE",
+    }),
+
   getCatalog: () => apiFetch<SkillCatalogItem[]>("/api/skills/catalog"),
 
   getManifest: (id: string) => apiFetch<SkillManifest>(`/api/skills/${id}/manifest`),

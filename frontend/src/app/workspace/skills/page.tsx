@@ -1,21 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SkillMarketHeader } from "@/components/skills/SkillMarketHeader";
 import { SkillGrid } from "@/components/skills/SkillGrid";
 import { SkillSection } from "@/components/skills/SkillSection";
 import { PurchaseRecordsModal } from "@/components/skills/PurchaseRecordsModal";
+import { DeleteSkillModal } from "@/components/skills/DeleteSkillModal";
 import { useSkillStore } from "@/stores/skillStore";
 import { theme } from "@/styles/theme";
 import type { SkillDefinition, SkillStoreSection } from "@/types/skill";
+
+type HintTone = "warning" | "success" | "danger";
 
 export default function SkillsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"store" | "mine">("store");
   const [search, setSearch] = useState("");
   const [openPurchase, setOpenPurchase] = useState(false);
-  const [hint, setHint] = useState<string | null>(null);
+  const [hint, setHint] = useState<{ message: string; tone: HintTone } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SkillDefinition | null>(null);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const storeSections = useSkillStore((s) => s.storeSections);
   const mySkills = useSkillStore((s) => s.mySkills);
@@ -23,8 +28,10 @@ export default function SkillsPage() {
   const loadingStore = useSkillStore((s) => s.loadingStore);
   const loadingSkills = useSkillStore((s) => s.loadingSkills);
   const loadingPurchaseRecords = useSkillStore((s) => s.loadingPurchaseRecords);
+  const deletingSkillId = useSkillStore((s) => s.deletingSkillId);
   const loadMarketplace = useSkillStore((s) => s.loadMarketplace);
   const loadPurchaseRecords = useSkillStore((s) => s.loadPurchaseRecords);
+  const deleteSkill = useSkillStore((s) => s.deleteSkill);
 
   useEffect(() => {
     loadMarketplace();
@@ -35,6 +42,10 @@ export default function SkillsPage() {
       loadPurchaseRecords();
     }
   }, [openPurchase, loadPurchaseRecords]);
+
+  useEffect(() => () => {
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+  }, []);
 
   const fallbackSections = useMemo<SkillStoreSection[]>(() => {
     const all = [...theme.skills] as unknown as SkillDefinition[];
@@ -57,6 +68,12 @@ export default function SkillsPage() {
   }, []);
 
   const sections = storeSections.length > 0 ? storeSections : fallbackSections;
+
+  const showHint = (message: string, tone: HintTone = "warning") => {
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    setHint({ message, tone });
+    hintTimerRef.current = setTimeout(() => setHint(null), 2400);
+  };
 
   const filteredSections = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -91,12 +108,60 @@ export default function SkillsPage() {
 
   const handleOpenSkill = (skill: SkillDefinition) => {
     if (skill.market_status !== "ready") {
-      setHint(`${skill.name} 即将上线`);
-      setTimeout(() => setHint(null), 2200);
+      showHint(`${skill.name} 即将上线`);
       return;
     }
     router.push(`/workspace/skills/${skill.id}`);
   };
+
+  const handleRequestDelete = (skill: SkillDefinition) => {
+    const isUserCreated =
+      skill.deletable === true ||
+      skill.source === "builder" ||
+      skill.source_raw === "user_generated" ||
+      skill.author === "@SkillCreator" ||
+      skill.tags.includes("用户创建");
+    if (!isUserCreated) {
+      showHint("官方技能不支持删除");
+      return;
+    }
+    setDeleteTarget(skill);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      const deletedName = deleteTarget.name;
+      await deleteSkill(deleteTarget.id);
+      setDeleteTarget(null);
+      showHint(`${deletedName} 已删除`, "success");
+    } catch (err) {
+      showHint(err instanceof Error ? err.message : "删除技能失败", "danger");
+    }
+  };
+
+  const hintStyle = useMemo(() => {
+    if (!hint) return null;
+    if (hint.tone === "success") {
+      return {
+        borderColor: "rgba(52,211,153,0.28)",
+        background: "rgba(52,211,153,0.12)",
+        color: "rgb(110,231,183)",
+      };
+    }
+    if (hint.tone === "danger") {
+      return {
+        borderColor: "rgba(248,113,113,0.26)",
+        background: "rgba(248,113,113,0.12)",
+        color: "rgb(252,165,165)",
+      };
+    }
+    return {
+      borderColor: "rgba(245,158,11,0.34)",
+      background: "rgba(245,158,11,0.12)",
+      color: "rgb(245,158,11)",
+    };
+  }, [hint]);
 
   return (
     <div className="h-full overflow-y-auto p-6 animate-fadeIn">
@@ -110,16 +175,12 @@ export default function SkillsPage() {
           onOpenCreate={() => router.push("/workspace/skills/create")}
         />
 
-        {hint && (
+        {hint && hintStyle && (
           <div
             className="rounded-xl border px-4 py-2.5 text-[13px] animate-fadeIn"
-            style={{
-              borderColor: "rgba(245,158,11,0.34)",
-              background: "rgba(245,158,11,0.12)",
-              color: "rgb(245,158,11)",
-            }}
+            style={hintStyle}
           >
-            {hint}
+            {hint.message}
           </div>
         )}
 
@@ -136,6 +197,7 @@ export default function SkillsPage() {
                 key={section.id}
                 section={section}
                 onOpenSkill={handleOpenSkill}
+                onDeleteSkill={handleRequestDelete}
                 showMore={idx > 0}
               />
             ))}
@@ -148,10 +210,18 @@ export default function SkillsPage() {
         )}
 
         {!loadingStore && !loadingSkills && activeTab === "mine" && (
-          <div className="space-y-3">
-            <h3 className="text-[22px] font-semibold text-white/92">我的技能</h3>
-            <p className="text-[13px] text-white/40">已拥有技能可直接进入执行，持续复用历史配置与流程。</p>
-            <SkillGrid skills={filteredMine} onOpenSkill={handleOpenSkill} />
+          <div>
+            <div className="flex items-center gap-3 mb-5">
+              <h3 className="text-[20px] font-semibold tracking-[-0.01em] text-white/88">我的技能</h3>
+              {filteredMine.length > 0 && (
+                <span className="rounded-md bg-white/[0.06] px-2 py-0.5 text-[11px] tabular-nums text-white/36">
+                  {filteredMine.length}
+                </span>
+              )}
+              <span className="h-3.5 w-px bg-white/[0.08]" />
+              <p className="text-[13px] text-white/34">已拥有技能可直接进入执行，持续复用历史配置与流程</p>
+            </div>
+            <SkillGrid skills={filteredMine} onOpenSkill={handleOpenSkill} onDeleteSkill={handleRequestDelete} />
           </div>
         )}
       </div>
@@ -161,6 +231,13 @@ export default function SkillsPage() {
         records={purchaseRecords}
         loading={loadingPurchaseRecords}
         onClose={() => setOpenPurchase(false)}
+      />
+      <DeleteSkillModal
+        open={Boolean(deleteTarget)}
+        skillName={deleteTarget?.name}
+        loading={Boolean(deleteTarget && deletingSkillId === deleteTarget.id)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

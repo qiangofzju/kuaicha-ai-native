@@ -246,6 +246,13 @@ export const Icons = {
       <path d="M3 6l5 5 5-5" />
     </svg>
   ),
+  DotsVertical: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="currentColor">
+      <circle cx="8" cy="3.25" r="1.25" />
+      <circle cx="8" cy="8" r="1.25" />
+      <circle cx="8" cy="12.75" r="1.25" />
+    </svg>
+  ),
   Globe: ({ className, size = 16 }: IconProps) => (
     <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
       <circle cx="8" cy="8" r="6.5" />
@@ -276,6 +283,14 @@ export const Icons = {
       <path d="M9 1.5H4.5a1.5 1.5 0 0 0-1.5 1.5v10a1.5 1.5 0 0 0 1.5 1.5h7a1.5 1.5 0 0 0 1.5-1.5V5.5L9 1.5Z" />
       <path d="M9 1.5V5.5h4" />
       <path d="M8 8.5v4M6 10.5h4" />
+    </svg>
+  ),
+  Trash: ({ className, size = 16 }: IconProps) => (
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 4.5h11" />
+      <path d="M6 2.5h4" />
+      <path d="M5 4.5v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-8" />
+      <path d="M6.75 7v4M9.25 7v4" />
     </svg>
   ),
   CheckDelivery: ({ className, size = 16 }: IconProps) => (

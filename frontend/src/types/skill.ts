@@ -18,6 +18,7 @@ export interface SkillDefinition {
   market_status: SkillMarketStatus;
   source?: string;
   source_raw?: string;
+  deletable?: boolean;
 }
 
 export interface SkillStoreSection {
@@ -163,6 +164,7 @@ export interface SkillTraceEvent {
     | "tool_result"
     | "file_write"
     | "plan"
+    | "clarification"
     | "tool_start"
     | "tool_stdout"
     | "tool_stderr"

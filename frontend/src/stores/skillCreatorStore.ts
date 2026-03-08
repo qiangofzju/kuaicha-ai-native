@@ -17,6 +17,19 @@ export type SkillCreatorPhase =
   | "run_skill_ready"
   | "failed";
 
+export type SkillCreatorMode =
+  | "planning"
+  | "clarification_pending"
+  | "generating"
+  | "completed"
+  | "failed";
+
+interface CreatorConversationTurn {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
 interface OpenFileState {
   path: string;
   content: string;
@@ -62,6 +75,11 @@ interface PlaygroundState {
 interface SkillCreatorState {
   phase: SkillCreatorPhase;
   prompt: string;
+  creatorMode: SkillCreatorMode;
+  conversationTurns: CreatorConversationTurn[];
+  pendingQuestions: string[];
+  awaitingUserReply: boolean;
+  creationContext: Record<string, unknown>;
 
   workspace: WorkspaceSession | null;
   workspaceStatus: WorkspaceStatus;
@@ -94,9 +112,11 @@ interface SkillCreatorState {
   saveOpenFile: () => Promise<void>;
 
   startCreation: (prompt: string) => Promise<string | null>;
+  continueCreation: (prompt: string) => Promise<string | null>;
   updateProgress: (progress: SkillProgress) => void;
   appendTrace: (event: SkillTraceEvent) => void;
   completeWithResult: (result: SkillCreatorResult) => void;
+  enterClarification: (payload: { summary?: string; pendingQuestions?: string[] }) => void;
   failWithMessage: (message: string) => void;
 
   setPlaygroundQuery: (value: string) => void;
@@ -128,6 +148,11 @@ const initialPlayground: PlaygroundState = {
 const initialState = {
   phase: "loading" as SkillCreatorPhase,
   prompt: "",
+  creatorMode: "planning" as SkillCreatorMode,
+  conversationTurns: [] as CreatorConversationTurn[],
+  pendingQuestions: [] as string[],
+  awaitingUserReply: false,
+  creationContext: {} as Record<string, unknown>,
   workspace: null,
   workspaceStatus: "initializing" as WorkspaceStatus,
   sandboxLogs: [] as Array<{ line: string; ts?: string }>,
@@ -157,6 +182,11 @@ export const useSkillCreatorStore = create<SkillCreatorState>((set, get) => ({
   initializeWorkspace: async (seedPrompt = "") => {
     set({
       phase: "loading",
+      creatorMode: "planning",
+      conversationTurns: [],
+      pendingQuestions: [],
+      awaitingUserReply: false,
+      creationContext: {},
       error: null,
       sandboxLogs: [],
       workspaceTree: [],
@@ -379,11 +409,22 @@ export const useSkillCreatorStore = create<SkillCreatorState>((set, get) => ({
       error: null,
       prompt: query,
       phase: "building_skill",
+      creatorMode: "planning",
       status: "pending",
       progress: { stage: "初始化", progress: 0, message: "准备启动创建任务" },
       traceEvents: [],
       result: null,
       runId: null,
+      pendingQuestions: [],
+      awaitingUserReply: false,
+      creationContext: {},
+      conversationTurns: [
+        {
+          id: `user-${Date.now()}`,
+          role: "user",
+          content: query,
+        },
+      ],
       playground: { ...initialPlayground },
     });
 
@@ -415,8 +456,77 @@ export const useSkillCreatorStore = create<SkillCreatorState>((set, get) => ({
     }
   },
 
+  continueCreation: async (prompt) => {
+    const query = prompt.trim();
+    const workspace = get().workspace;
+    if (!query) {
+      set({ error: "请输入确认信息" });
+      return null;
+    }
+    if (!workspace) {
+      set({ error: "沙盒尚未就绪" });
+      return null;
+    }
+
+    set((state) => ({
+      submitting: true,
+      error: null,
+      prompt: query,
+      phase: "building_skill",
+      creatorMode: "planning",
+      status: "pending",
+      progress: { stage: "继续确认", progress: 0, message: "正在提交补充信息" },
+      traceEvents: state.traceEvents,
+      result: null,
+      runId: null,
+      awaitingUserReply: false,
+      conversationTurns: [
+        ...state.conversationTurns,
+        {
+          id: `user-${Date.now()}`,
+          role: "user",
+          content: query,
+        },
+      ],
+    }));
+
+    try {
+      const resp = await skillService.createRun({
+        skill_id: "skill-creator",
+        input: { query },
+        context: {
+          source: "skill_creator_ui",
+          creator_session_mode: "continuation",
+          workspace_id: workspace.workspace_id,
+          session_id: workspace.session_id,
+          display_root: workspace.display_root,
+        },
+      });
+      set({
+        runId: resp.run_id,
+        status: "running",
+        submitting: false,
+      });
+      return resp.run_id;
+    } catch (err) {
+      set({
+        phase: "failed",
+        creatorMode: "failed",
+        status: "failed",
+        error: mapError(err, "继续创建任务失败"),
+        submitting: false,
+      });
+      return null;
+    }
+  },
+
   updateProgress: (progress) => {
-    set({ progress, status: "running", phase: "building_skill" });
+    set({
+      progress,
+      status: "running",
+      phase: "building_skill",
+      creatorMode: progress.stage === "工具执行" || progress.stage === "交付整理" ? "generating" : "planning",
+    });
   },
 
   appendTrace: (event) => {
@@ -431,12 +541,17 @@ export const useSkillCreatorStore = create<SkillCreatorState>((set, get) => ({
   },
 
   completeWithResult: (result) => {
-    set({
+    set((state) => ({
       phase: "build_done",
+      creatorMode: "completed",
       status: "completed",
       result,
       error: null,
       submitting: false,
+      awaitingUserReply: false,
+      pendingQuestions: [],
+      creationContext: {},
+      conversationTurns: state.conversationTurns,
       progress: {
         stage: "交付完成",
         progress: 100,
@@ -446,12 +561,30 @@ export const useSkillCreatorStore = create<SkillCreatorState>((set, get) => ({
         ...initialPlayground,
         query: "",
       },
-    });
+    }));
+  },
+
+  enterClarification: ({ summary, pendingQuestions }) => {
+    set((state) => ({
+      phase: "building_skill",
+      creatorMode: "clarification_pending",
+      status: "pending",
+      submitting: false,
+      awaitingUserReply: true,
+      pendingQuestions: pendingQuestions || [],
+      conversationTurns: state.conversationTurns,
+      progress: {
+        stage: "需求确认",
+        progress: 0,
+        message: summary || "等待用户确认",
+      },
+    }));
   },
 
   failWithMessage: (message) => {
     set({
       phase: "failed",
+      creatorMode: "failed",
       status: "failed",
       error: message,
       submitting: false,

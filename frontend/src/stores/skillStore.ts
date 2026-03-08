@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { ApiError } from "@/services/api";
 import type {
   PurchaseRecord,
   SkillDefinition,
@@ -15,6 +16,7 @@ interface SkillState {
   skills: SkillDefinition[];
   storeSections: SkillStoreSection[];
   mySkills: SkillDefinition[];
+  deletedSkillIds: string[];
   purchaseRecords: PurchaseRecord[];
   selectedSkill: SkillDefinition | null;
   manifest: SkillManifest | null;
@@ -30,6 +32,7 @@ interface SkillState {
   loadingManifest: boolean;
   loadingStore: boolean;
   loadingPurchaseRecords: boolean;
+  deletingSkillId: string | null;
   executing: boolean;
   loadingResult: boolean;
   error: string | null;
@@ -39,6 +42,7 @@ interface SkillState {
   loadMySkills: () => Promise<void>;
   loadPurchaseRecords: () => Promise<void>;
   loadMarketplace: () => Promise<void>;
+  deleteSkill: (skillId: string) => Promise<void>;
   selectSkill: (skill: SkillDefinition) => void;
   loadManifest: (skillId: string) => Promise<void>;
   setFormValue: (field: string, value: unknown) => void;
@@ -67,6 +71,23 @@ const initialExecutionState = {
   error: null,
 };
 
+function filterDeletedSkills(skills: SkillDefinition[], deletedSkillIds: string[]): SkillDefinition[] {
+  if (deletedSkillIds.length === 0) return skills;
+  const hiddenIds = new Set(deletedSkillIds);
+  return skills.filter((skill) => !hiddenIds.has(skill.id));
+}
+
+function filterDeletedSections(sections: SkillStoreSection[], deletedSkillIds: string[]): SkillStoreSection[] {
+  if (deletedSkillIds.length === 0) return sections;
+  const hiddenIds = new Set(deletedSkillIds);
+  return sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((skill) => !hiddenIds.has(skill.id)),
+    }))
+    .filter((section) => section.items.length > 0);
+}
+
 function buildDefaultFormValues(manifest: SkillManifest): Record<string, unknown> {
   const defaults: Record<string, unknown> = {};
   const properties = manifest.input_schema?.properties || {};
@@ -90,6 +111,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   skills: [],
   storeSections: [],
   mySkills: [],
+  deletedSkillIds: [],
   purchaseRecords: [],
   selectedSkill: null,
   manifest: null,
@@ -98,13 +120,17 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   loadingManifest: false,
   loadingStore: false,
   loadingPurchaseRecords: false,
+  deletingSkillId: null,
   ...initialExecutionState,
 
   loadSkills: async () => {
     set({ loadingSkills: true, error: null });
     try {
       const skills = await skillService.listSkills();
-      set({ skills, loadingSkills: false });
+      set((state) => ({
+        skills: filterDeletedSkills(skills, state.deletedSkillIds),
+        loadingSkills: false,
+      }));
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : "Failed to load skills",
@@ -117,7 +143,10 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     set({ loadingStore: true, error: null });
     try {
       const data = await skillService.getStore();
-      set({ storeSections: data.sections || [], loadingStore: false });
+      set((state) => ({
+        storeSections: filterDeletedSections(data.sections || [], state.deletedSkillIds),
+        loadingStore: false,
+      }));
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : "Failed to load store",
@@ -129,7 +158,9 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   loadMySkills: async () => {
     try {
       const mySkills = await skillService.getMySkills();
-      set({ mySkills });
+      set((state) => ({
+        mySkills: filterDeletedSkills(mySkills, state.deletedSkillIds),
+      }));
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : "Failed to load my skills",
@@ -152,6 +183,46 @@ export const useSkillStore = create<SkillState>((set, get) => ({
 
   loadMarketplace: async () => {
     await Promise.all([get().loadSkills(), get().loadStore(), get().loadMySkills()]);
+  },
+
+  deleteSkill: async (skillId) => {
+    const removeSkillFromState = () => {
+      set((state) => {
+        const nextSelected = state.selectedSkill?.id === skillId ? null : state.selectedSkill;
+        const deletedSkillIds = state.deletedSkillIds.includes(skillId)
+          ? state.deletedSkillIds
+          : [...state.deletedSkillIds, skillId];
+        return {
+          skills: state.skills.filter((skill) => skill.id !== skillId),
+          storeSections: state.storeSections
+            .map((section) => ({
+              ...section,
+              items: section.items.filter((skill) => skill.id !== skillId),
+            }))
+            .filter((section) => section.items.length > 0),
+          mySkills: state.mySkills.filter((skill) => skill.id !== skillId),
+          deletedSkillIds,
+          selectedSkill: nextSelected,
+          manifest: nextSelected ? state.manifest : null,
+          deletingSkillId: null,
+        };
+      });
+    };
+
+    set({ deletingSkillId: skillId, error: null });
+    try {
+      await skillService.deleteSkill(skillId);
+      removeSkillFromState();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        removeSkillFromState();
+        void get().loadMarketplace();
+        return;
+      }
+      const message = err instanceof Error ? err.message : "Failed to delete skill";
+      set({ error: message, deletingSkillId: null });
+      throw err;
+    }
   },
 
   selectSkill: (skill) => {
@@ -284,6 +355,8 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       selectedSkill: null,
       manifest: null,
       formValues: {},
+      deletedSkillIds: [],
+      deletingSkillId: null,
       ...initialExecutionState,
     });
   },
